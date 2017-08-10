@@ -1,3 +1,12 @@
+# Eclipse
+
+.classpath
+.gitignore
+.project
+.settings/
+
+### GITHUB
+
 # Compiled class file
 *.class
 
