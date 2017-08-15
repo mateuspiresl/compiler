@@ -51,4 +51,20 @@ public class LexiconAnalyserTest {
 		assertEquals(new Symbol(".", TokenType.Delimiter, 6), symbols.get(index++));
 	}
 
+	@Test
+	public void testReal()
+	{
+		List<Symbol> symbols = LexiconAnalyser.process(
+				"1\n" + 
+				".\n" + 
+				"2\n" + 
+				"3.4\n" + 
+				"5.6 a\n" +
+				"c 9.10 d"
+			);
+		int index = 0;
+		
+		assertEquals(9, symbols.size());
+	}
+	
 }

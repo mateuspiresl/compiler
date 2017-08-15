@@ -101,18 +101,17 @@ public class LexiconAnalyser {
 			if (matcher.start() > lastIndex)
 				subTokens.add(token.substring(lastIndex, matcher.start()));
 			
-			if (matcher.group() == ".")
+			if (matcher.group().equals(".") && subTokens.size() > 0)
 			{
-				if (Rules.INTEGER_PATTERN.matcher(matcher.group()).matches())
-					partialReal = true;
+				partialReal = Rules.INTEGER_PATTERN.matcher(subTokens.get(subTokens.size() - 1)).matches();
 			}
 			else if (partialReal)
 			{
 				fixReal(subTokens);
-				partialReal =false;
+				partialReal = false;
 			}
 			
-			subTokens.add(token.substring(matcher.start(), matcher.end()));
+			subTokens.add(matcher.group());
 			lastIndex = matcher.end();
 		}
 		
@@ -139,7 +138,7 @@ public class LexiconAnalyser {
 	
 	public List<Symbol> done()
 	{
-		if (commenting) throw new RuntimeException("Comment not closed, at EOF");
+		if (this.commenting) throw new LexiconException("Comment not closed, at EOF");
 		return this.symbols;
 	}
 	
