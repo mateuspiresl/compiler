@@ -24,10 +24,19 @@ public class Symbol {
 	public int getAt() {
 		return this.at;
 	}
-
+	
+	public String toFormatedString()
+	{
+		int n = 4 - ((int) Math.ceil(this.token.length() / 8.0));
+		StringBuilder builder = new StringBuilder();
+		while (n-- > 0) builder.append("\t");
+		
+		return this.at + "\t" + this.token + builder + this.type;
+	}
+	
 	@Override
 	public String toString() {
-		return "'" + this.token + "', " + this.type + ", at " + this.at;
+		return this.at + ":" + this.token + ", " + this.type;
 	}
 	
 	@Override

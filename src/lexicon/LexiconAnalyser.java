@@ -6,8 +6,9 @@ import java.util.regex.Matcher;
 
 public class LexiconAnalyser {
 	
-	public List<Symbol> symbols;
-	public boolean commenting = false;
+	private List<Symbol> symbols;
+	private boolean commenting = false;
+	private int at;
 
 	public LexiconAnalyser() {
 		this.symbols = new ArrayList<>();
@@ -16,16 +17,20 @@ public class LexiconAnalyser {
 	public LexiconAnalyser processCode(String code) {
 		return processLines(code.split("\n"));
 	}
+	
+	public LexiconAnalyser processLines(List<String> lines) {
+		return processLines(lines.toArray(new String[0]));
+	}
 
 	public LexiconAnalyser processLines(String[] lines)
 	{
 		for (int i = 0; i < lines.length; i++)
-			processLine(lines[i], i);
+			processLine(lines[i]);
 		
 		return this;
 	}
 
-	public LexiconAnalyser processLine(String line, int at)
+	public LexiconAnalyser processLine(String line)
 	{
 		String[] tokens = line.split(" ");
 		for (String token : tokens)
@@ -80,6 +85,7 @@ public class LexiconAnalyser {
 			}
 		}
 		
+		this.at++;
 		return this;
 	}
 	
@@ -142,6 +148,10 @@ public class LexiconAnalyser {
 	}
 	
 	public static List<Symbol> process(String[] lines) {
+		return new LexiconAnalyser().processLines(lines).done();
+	}
+	
+	public static List<Symbol> process(List<String> lines) {
 		return new LexiconAnalyser().processLines(lines).done();
 	}
 	
