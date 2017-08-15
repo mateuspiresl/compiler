@@ -1,5 +1,8 @@
 package lexicon;
 
+/**
+ * Represents all token types.
+ */
 public enum TokenType {
 	KeyWord("Palavra-chave"),
 	Identifier("Identificador"),

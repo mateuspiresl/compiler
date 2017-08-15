@@ -7,7 +7,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-@SuppressWarnings({ "unused", "serial" })
+/**
+ * Represents all lexicographic processing rules.
+ */
+@SuppressWarnings({ "serial" })
 public abstract class Rules {
 
 	public static final Pattern IDENTIFIER_PATTERN = Pattern.compile("^[a-zA-Z][\\w\\d]*$");

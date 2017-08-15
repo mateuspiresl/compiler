@@ -1,5 +1,8 @@
 package lexicon;
 
+/**
+ * Represents a symbol.
+ */
 public class Symbol {
 
 	private final String token;
@@ -36,7 +39,7 @@ public class Symbol {
 	
 	@Override
 	public String toString() {
-		return this.at + ":" + this.token + ", " + this.type;
+		return this.at + ": " + this.token + ", " + this.type;
 	}
 	
 	@Override
