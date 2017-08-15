@@ -113,14 +113,4 @@ public class RulesTest {
 		assertEquals(-1, find(pattern, "a_aa"));
 	}
 	
-	@Test
-	public void testPatternPrecedence()
-	{
-		Pattern pattern = Pattern.compile(":=|:|=");
-		Matcher matcher = pattern.matcher("a := 1");
-		
-		matcher.find();
-		System.out.println(matcher.group());
-	}
-	
 }
