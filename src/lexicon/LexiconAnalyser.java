@@ -14,7 +14,7 @@ public class LexiconAnalyser {
 	// closing symbol after it.
 	private boolean commenting = false;
 	// The current line.
-	private int at;
+	private int at = 1;
 
 	/**
 	 * The constructor.
@@ -86,9 +86,6 @@ public class LexiconAnalyser {
 				else if (Rules.KEY_WORDS.contains(lower))
 					type = TokenType.KeyWord;
 				
-				else if (Rules.IDENTIFIER_PATTERN.matcher(lower).matches())
-					type = TokenType.Identifier;
-				
 				else if (Rules.INTEGER_PATTERN.matcher(lower).matches())
 					type = TokenType.Integer;
 				
@@ -109,6 +106,9 @@ public class LexiconAnalyser {
 				
 				else if (Rules.OPERATORS_MULTIPLICATIVE.contains(lower))
 					type = TokenType.MultiplicativeOperator;
+				
+				else if (Rules.IDENTIFIER_PATTERN.matcher(lower).matches())
+					type = TokenType.Identifier;
 				
 				else throw new LexiconException("The symbol '" + subToken + "' does not belong to this language, at " + at);
 				
