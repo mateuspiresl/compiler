@@ -38,7 +38,7 @@ public abstract class Rules {
 		}};
 		
 		List<String> DELIMITERS_LIST = Arrays.asList(new String[] { ";", ".", ":", ",", "(", ")" });
-		List<String> OPERATORS_RELATIONAL_LIST = Arrays.asList(new String[] { "=", "<", ">", "<=", ">=", "<>" });
+		List<String> OPERATORS_RELATIONAL_LIST = Arrays.asList(new String[] { "<=", ">=", "<>", "=", "<", ">" });
 		List<String> OPERATORS_ADDITIVE_LIST = Arrays.asList(new String[] { "+", "-" });
 		List<String> OPERATORS_MULTIPLICATIVE_LIST = Arrays.asList(new String[] { "*", "/" });
 		

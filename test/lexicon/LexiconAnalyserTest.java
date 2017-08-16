@@ -112,4 +112,29 @@ public class LexiconAnalyserTest {
 		assertEquals(new Symbol("d", TokenType.Identifier, 5), symbols.get(index++));
 	}
 	
+	@Test
+	public void testMultCharacterOperators()
+	{
+		List<Symbol> symbols = LexiconAnalyser.process(
+				"1 >= 2\n" + 
+				"3 > 4\n" + 
+				"a = 5\n"
+			);
+		int index = 0;
+		
+		assertEquals(9, symbols.size());
+		
+		assertEquals(new Symbol("1", TokenType.Integer, 1), symbols.get(index++));
+		assertEquals(new Symbol(">=", TokenType.RelationalOperator, 1), symbols.get(index++));
+		assertEquals(new Symbol("2", TokenType.Integer, 1), symbols.get(index++));
+		
+		assertEquals(new Symbol("3", TokenType.Integer, 2), symbols.get(index++));
+		assertEquals(new Symbol(">", TokenType.RelationalOperator, 2), symbols.get(index++));
+		assertEquals(new Symbol("4", TokenType.Integer, 2), symbols.get(index++));
+		
+		assertEquals(new Symbol("a", TokenType.Identifier, 3), symbols.get(index++));
+		assertEquals(new Symbol("=", TokenType.RelationalOperator, 3), symbols.get(index++));
+		assertEquals(new Symbol("5", TokenType.Integer, 3), symbols.get(index++));
+	}
+	
 }
