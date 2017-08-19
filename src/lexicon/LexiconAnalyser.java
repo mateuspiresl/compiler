@@ -14,7 +14,7 @@ public class LexiconAnalyser {
 	// closing symbol after it.
 	private boolean commenting = false;
 	// The current line.
-	private int at = 1;
+	private int at = 0;
 
 	/**
 	 * The constructor.
@@ -61,6 +61,8 @@ public class LexiconAnalyser {
 	 */
 	public LexiconAnalyser processLine(String line)
 	{
+		this.at++;
+		
 		String[] tokens = line.split(" ");
 		for (String token : tokens)
 		{
@@ -70,8 +72,8 @@ public class LexiconAnalyser {
 				String lower = subToken.toLowerCase();
 				TokenType type = null;
 				
-				// Ignores everything if it's commenting, unless it's
-				// comment closing.
+				// Ignores everything if it's commenting, unless it's a
+				// comment closing symbol.
 				if (commenting) {
 					if (lower.equals(Rules.COMMENT_CLOSE))
 						commenting = false;
@@ -83,8 +85,12 @@ public class LexiconAnalyser {
 				else if (lower.equals(Rules.COMMENT_CLOSE))
 					throw new LexiconException("Closing comment without open, at " + at);
 				
-				else if (Rules.KEY_WORDS.contains(lower))
-					type = TokenType.KeyWord;
+				else if (lower.equals(Rules.COMMENT_INLINE))
+					// Ignores everything after an inline comment
+					return this;
+				
+				else if (lower.equals(Rules.ASSIGNMENT_COMMAND))
+					type = TokenType.AssignmentCommand;
 				
 				else if (Rules.INTEGER_PATTERN.matcher(lower).matches())
 					type = TokenType.Integer;
@@ -92,8 +98,8 @@ public class LexiconAnalyser {
 				else if (Rules.REAL_PATTERN.matcher(lower).matches())
 					type = TokenType.Real;
 				
-				else if (lower.equals(Rules.ASSIGNMENT_COMMAND))
-					type = TokenType.AssignmentCommand;
+				else if (Rules.COMPLEX_PATTERN.matcher(lower).matches())
+					type = TokenType.Real;
 				
 				else if (Rules.DELIMITERS.contains(lower))
 					type = TokenType.Delimiter;
@@ -107,6 +113,9 @@ public class LexiconAnalyser {
 				else if (Rules.OPERATORS_MULTIPLICATIVE.contains(lower))
 					type = TokenType.MultiplicativeOperator;
 				
+				else if (Rules.KEY_WORDS.contains(lower))
+					type = TokenType.KeyWord;
+				
 				else if (Rules.IDENTIFIER_PATTERN.matcher(lower).matches())
 					type = TokenType.Identifier;
 				
@@ -116,90 +125,41 @@ public class LexiconAnalyser {
 			}
 		}
 		
-		this.at++;
 		return this;
 	}
 	
 	/**
 	 * Process tokens.
-	 * This method receives a string without spaces and breaks it
-	 * in sub tokens by separators (everything that is not alphanumeric
-	 * and is a valid symbol).
+	 * This method receives a string without spaces and breaks
+	 * into simpler tokens.
 	 * @param token the token.
-	 * @return the list of sub tokens.
+	 * @return the list of tokens.
 	 */
 	private List<String> processToken(String token)
 	{
 		List<String> subTokens = new ArrayList<>();
-		Matcher matcher = Rules.SEPARATORS_PATTERN.matcher(token);
+		Matcher matcher = Rules.GENERAL_PATTERN.matcher(token);
 		int lastIndex = 0;
-		
-		// Indicates a real number (found an integer followed by a dot).
-		boolean partialReal = false;
 		
 		// Finds a separator
 		while (!matcher.hitEnd() && matcher.find())
 		{
-			// If it's the beginning of the token:
-			// 	 if the found separator does not start at the index 0,
-			//   the previous substring, that goes from 0 to the start
-			//   of the separator, needs to be added.
-			// Otherwise:
-			//   if the found separator does not start right after the
-			//   end of the previous one, there is a string between both
-			//   that needs to be added.
+			// It there is something that wasn't catch by the 
+			// general pattern, it's a symbol that does not belong
+			// to the language and must be added to be recognized
+			// in the processor.
 			if (matcher.start() > lastIndex)
 				subTokens.add(token.substring(lastIndex, matcher.start()));
-			
-			// If the found separator is a dot and the previous substring
-			// is an integer, it found a "partial real", so there is a
-			// chance that appending these two and the next substring,
-			// a real number will be formed.
-			if (matcher.group().equals(".") && subTokens.size() > 0) {
-				partialReal = Rules.INTEGER_PATTERN.matcher(subTokens.get(subTokens.size() - 1)).matches();
-			}
-			// If the previous separator formed a partial real and there
-			// was a substring between the current and last separators,
-			// check if the appending with this will form a real number.
-			else if (partialReal)
-			{
-				if (matcher.start() > lastIndex)
-					fixReal(subTokens);
-				
-				partialReal = false;
-			}
 			
 			subTokens.add(matcher.group());
 			lastIndex = matcher.end();
 		}
 		
-		// There's a string after the last separator found
+		// There's a string after the last substring found.
 		if (lastIndex < token.length())
-		{
 			subTokens.add(token.substring(lastIndex, token.length()));
-			if (partialReal) fixReal(subTokens);
-		}
 		
 		return subTokens;
-	}
-
-	/**
-	 * Fix the real number breaking.
-	 * It considers that the second and third last tokens forms
-	 * a partial token, so it only checks if the last token is
-	 * an integer, and if positive, builds the real number.
-	 * @param tokens the list of tokens.
-	 */
-	private void fixReal(List<String> tokens)
-	{
-		int last = tokens.size() - 1;
-		
-		if (Rules.INTEGER_PATTERN.matcher(tokens.get(last)).matches())
-		{
-			tokens.set(last - 2, tokens.get(last - 2) + tokens.get(last - 1) + tokens.get(last));
-			tokens.remove(last);
-			tokens.remove(last - 1);
-		}
 	}
 	
 	/**

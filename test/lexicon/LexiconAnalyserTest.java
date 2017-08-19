@@ -1,6 +1,7 @@
 package lexicon;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 
@@ -113,7 +114,7 @@ public class LexiconAnalyserTest {
 	}
 	
 	@Test
-	public void testMultCharacterOperators()
+	public void testMultcharacterOperators()
 	{
 		List<Symbol> symbols = LexiconAnalyser.process(
 				"1 >= 2\n" + 
@@ -135,6 +136,19 @@ public class LexiconAnalyserTest {
 		assertEquals(new Symbol("a", TokenType.Identifier, 3), symbols.get(index++));
 		assertEquals(new Symbol("=", TokenType.RelationalOperator, 3), symbols.get(index++));
 		assertEquals(new Symbol("5", TokenType.Integer, 3), symbols.get(index++));
+	}
+	
+	@Test
+	public void testErrors()
+	{
+		try { assertEquals(null, LexiconAnalyser.process("{asd\\nqwe")); }
+		catch (LexiconException le) { assertTrue(true); }
+		
+		try { assertEquals(null, LexiconAnalyser.process("asd}\nqwe")); }
+		catch (LexiconException le) { assertTrue(true); }
+		
+		try { assertEquals(null, LexiconAnalyser.process("as%d\\nqwe")); }
+		catch (LexiconException le) { assertTrue(true); }
 	}
 	
 }
