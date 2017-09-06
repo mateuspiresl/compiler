@@ -8,169 +8,163 @@ import lexicon.TokenType;
 
 public class SyntacticAnalyser
 {
-	private ListIterator<Symbol> it;
+	private List<Symbol> symbols;
 	
 	public SyntacticAnalyser(List<Symbol> symbols) {
-		this.it = symbols.listIterator();
+		this.symbols = symbols;
 	}
 	
 	public void analyse()
 	{
-		if (!has())
-			throw new SyntacticException("Missing key word 'program'");
+		int i = 0;
 		
-		if (!next().equals(Types.PROGRAM))
-			throw new SyntacticException("Missing key word 'program'", this.it);
+		if (!has(i) || !get(i++).equals(Types.PROGRAM))
+			throw new SyntacticException("Missing key word 'program'", previous(i));
 		
-		if (!has() || nextType() != TokenType.Identifier)
-			throw new SyntacticException("Missing program identifier", this.it);
+		if (!has(i) || getType(i++) != TokenType.Identifier)
+			throw new SyntacticException("Missing program identifier", previous(i));
 		
-		if (!has() || !next().equals(Types.INSTRUCTION_END))
-			throw new SyntacticException("Missing ';'", this.it);
+		if (!has(i) || !get(i++).equals(Types.INSTRUCTION_END))
+			throw new SyntacticException("Missing ';'", previous(i));
 		
-		if (has()) matchVariableDeclarations();
-		if (has()) matchProcedureDeclarations();
+		i = matchVariableDeclarations(i);
+		i = matchProcedureDeclarations(i);
 		
-		if (has()) System.out.println("MAYBE AN ERROR");
+		if (has(i)) new RuntimeException("??????????????");
 	}
 	
-	private boolean has() { return this.it.hasNext(); }
-	private String next() { return this.it.next().getToken(); }
-	private TokenType nextType() { return this.it.next().getType(); }
-	// private void previous() { this.it.previous(); }
+	private boolean has(int i) { return this.symbols.size() > i; }
+	private String get(int i) { return this.symbols.get(i).getToken(); }
+	private TokenType getType(int i) { return this.symbols.get(i).getType(); }
+	private Symbol previous(int i) { return this.symbols.get(has(i) ? i : i - 1); }
 	
-	private void matchVariableDeclarations()
+	private int matchVariableDeclarations(int i)
 	{
-		if (next().equals(Types.VAR))
-			matchVariableDeclarationList(true);
-		else
-			this.it.previous();
+		if (has(i) && get(i).equals(Types.VAR))
+			return matchVariableDeclarationList(i + 1, true);
+		
+		return i;
 	}
 	
-	private void matchVariableDeclarationList(boolean isFirst)
+	private int matchVariableDeclarationList(int i, boolean isFirst)
 	{
-		if (!matchIdentifiersList())
-		{
-			if (isFirst) throw new SyntacticException("Missing identifier", this.it);
-			this.it.previous();
+		int state = i;
+		
+		if ((i = matchIdentifiersList(i)) <= state) {
+			if (isFirst) throw new SyntacticException("Missing identifier", previous(i));
 		}
 		else
 		{
-			if (!has() || !next().equals(":"))
-				throw new SyntacticException("Missing ':'", this.it);
+			if (!has(i) || !get(i++).equals(":"))
+				throw new SyntacticException("Missing ':'", previous(i - 1));
 			
-			if (!has() || !Types.TYPES.contains(next()))
-				throw new SyntacticException("Invalid or missing type", this.it);
+			if (!has(i) || !Types.TYPES.contains(get(i++)))
+				throw new SyntacticException("Invalid or missing type", previous(i - 1));
 			
-			if (!has() || !next().equals(";"))
-				throw new SyntacticException("Missing ';'", this.it);
+			if (!has(i) || !get(i++).equals(";"))
+				throw new SyntacticException("Missing ';'", previous(i - 1));
 			
-			if (has()) matchVariableDeclarationList(false);
-		}
-	}
-	
-	private boolean matchIdentifiersList()
-	{
-		if (!has() || nextType() != TokenType.Identifier)
-			return false;
-		
-		if (has())
-		{
-			if (next().equals(","))
-			{
-				if (!matchIdentifiersList())
-					throw new SyntacticException("Missing identifier", this.it);
-			}
-			else this.it.previous();
+			matchVariableDeclarationList(i, false);
 		}
 		
-		return true;
+		return i;
 	}
 	
-	private void matchProcedureDeclarations()
+	private int matchIdentifiersList(int i)
 	{
-		if (matchProcedureDeclaration() && has())
-			matchProcedureDeclarations();
+		if (!has(i) || getType(i++) != TokenType.Identifier)
+			return i - 1;
+		
+		int state = i;
+		
+		if (has(i) && get(i).equals(",") && (i = matchIdentifiersList(i + 1)) <= state + 1)
+			throw new SyntacticException("Missing identifier", previous(i + 1));
+		
+		return i;
 	}
 	
-	private boolean matchProcedureDeclaration()
+	private int matchProcedureDeclarations(int i)
 	{
-		if (!next().equals(Types.PROCEDURE))
+		int state = i;
+		
+		if (has(i) && (i = matchProcedureDeclaration(i)) > state)
+			i = matchProcedureDeclarations(i);
+		
+		return i;
+	}
+	
+	private int matchProcedureDeclaration(int i)
+	{
+		if (!get(i).equals(Types.PROCEDURE))
+			return i;
+		
+		if (!has(i) || getType(i++) != TokenType.Identifier)
+			throw new SyntacticException("Missing procedure identifier", previous(i - 1));
+		
+		matchParameters(i);
+		
+		if (!has(i) || !get(i++).equals(";"))
+			throw new SyntacticException("Missing ';'", previous(i - 1));
+		
+		i = matchVariableDeclarations(i);
+		i = matchProcedureDeclarations(i);
+		// i = matchCompoundCommand();
+		
+		return i;
+	}
+	
+	private int matchParameters(int i)
+	{
+		if (get(i).equals(Types.PROCEDURE_OPEN))
 		{
-			// Offer unmatched token to the iterator
-			this.it.previous();
-			return false;
-		}
-		
-		if (!has() || nextType() != TokenType.Identifier)
-			throw new SyntacticException("Missing procedure identifier", this.it);
-		
-		if (has()) matchParameters();
-		
-		if (!has() || !next().equals(";"))
-			throw new SyntacticException("Missing ';'", this.it);
-		
-		if (has()) matchVariableDeclarations();
-		if (has()) matchProcedureDeclarations();
-		matchCompoundCommand();
-		
-		return true;
-	}
-	
-	private void matchParameters()
-	{
-		if (next().equals(Types.PROCEDURE_OPEN))
-		{
-			matchParametersList();
+			i = matchParametersList(i);
 			
-			if (!has() || !next().equals(")"))
-				throw new SyntacticException("Missing ')'", this.it);
+			if (!has(i) || !get(i).equals(")"))
+				throw new SyntacticException("Missing ')'", previous(i));
 		}
-		else this.it.previous();
+		
+		return i;
 	}
 	
-	private void matchParametersList()
+	private int matchParametersList(int i)
 	{
-		matchIdentifiersList();
+		i = matchIdentifiersList(i);
 		
-		if (!has() || !next().equals(":"))
-			throw new SyntacticException("Missing ':'", this.it);
+		if (!has(i) || !get(i++).equals(":"))
+			throw new SyntacticException("Missing ':'", previous(i - 1));
 		
-		if (!has() || !Types.TYPES.contains(next()))
-			throw new SyntacticException("Invalid or missing type", this.it);
+		if (!has(i) || !Types.TYPES.contains(get(i++)))
+			throw new SyntacticException("Invalid or missing type", previous(i - 1));
 		
-		if (has())
-		{
-			if (next().equals(";"))
-				matchParametersList();
-			else
-				this.it.previous();
-		}
+		if (has(i) && get(i).equals(";"))
+			i = matchParametersList(i + 1);
+		
+		return i;
 	}
 	
 	private void matchCompoundCommand()
 	{
-		if (!has() || !next().equals("begin"))
-			throw new SyntacticException("Missing 'begin' command", this.it);
+		if (!has(i) || !get(i).equals("begin"))
+			throw new SyntacticException("Missing 'begin' command", previous(i));
 		
 		matchOptionalCommands();
 		
-		if (!has() || !next().equals("end"))
-			throw new SyntacticException("Missing 'end' command", this.it);
+		if (!has(i) || !get(i).equals("end"))
+			throw new SyntacticException("Missing 'end' command", previous(i));
 	}
 	
 	private void matchOptionalCommands()
 	{
-		if (has()) matchCommandList();
+		if (has(i)) matchCommandList();
 	}
 	
 	private void matchCommandList()
 	{
 		matchCommand();
 		
-		if (has())
+		if (has(i))
 		{
-			if (next().equals(";"))
+			if (get(i).equals(";"))
 				matchCommandList();
 			else
 				this.it.previous();
@@ -184,8 +178,8 @@ public class SyntacticAnalyser
 	
 	private void matchVariable()
 	{
-		if (!has() || nextType() != TokenType.Identifier)
-			throw new SyntacticException("Missing identifier", this.it);
+		if (!has(i) || getType(i) != TokenType.Identifier)
+			throw new SyntacticException("Missing identifier", previous(i));
 	}
 	
 	private void matchExpression()
@@ -210,18 +204,18 @@ public class SyntacticAnalyser
 	
 	private void matchFactor()
 	{
-		if (!has()) throw new SyntacticException("Missing factor", this.it);
+		if (!has(i)) throw new SyntacticException("Missing factor", previous(i));
 		
-		Symbol sym = this.it.next();
+		Symbol sym = this.it.get(i);
 		
 		if (sym.getType() == TokenType.Identifier)
 		{
-			if (next().equals("("))
+			if (get(i).equals("("))
 			{
 				matchExpressionList();
 				
-				if (!has() || !next().equals(")"))
-					throw new SyntacticException("Missing ')'", this.it);
+				if (!has(i) || !get(i).equals(")"))
+					throw new SyntacticException("Missing ')'", previous(i));
 			}
 			else this.it.previous();
 		}
@@ -229,8 +223,8 @@ public class SyntacticAnalyser
 		{
 			matchExpression();
 			
-			if (!has() || !next().equals(")"))
-				throw new SyntacticException("Missing ')'", this.it);
+			if (!has(i) || !get(i).equals(")"))
+				throw new SyntacticException("Missing ')'", previous(i));
 		}
 		else if (sym.getToken().equals("not"))
 		{
