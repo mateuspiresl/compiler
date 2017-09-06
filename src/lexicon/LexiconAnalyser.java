@@ -121,7 +121,7 @@ public class LexiconAnalyser {
 				
 				else throw new LexiconException("The symbol '" + subToken + "' does not belong to this language, at " + at);
 				
-				if (type != null) this.symbols.add(new Symbol(subToken, type, at));
+				if (type != null) this.symbols.add(new Symbol(lower, type, at));
 			}
 		}
 		
