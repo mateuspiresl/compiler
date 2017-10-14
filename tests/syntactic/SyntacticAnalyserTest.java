@@ -117,6 +117,7 @@ public class SyntacticAnalyserTest
 		testCode("program id; begin if id > 1 then id := 1 end.");
 		testCode("program id; begin if id > 1 then id := 1 else id := 1 end.");
 		testCode("program id; begin while id > 1 do id := 1 end.");
+		testCode("program id; begin do id := 1 while id > 1 end.");
 		
 		testCode("program id; procedure proc; begin if id > 1 then id := 1 end; begin end.");
 		testCode("program id; procedure proc; begin if id > 1 then id := 1 else id := 1 end; begin end.");
@@ -185,6 +186,26 @@ public class SyntacticAnalyserTest
 				"      NUMERO := -10 / (-3);\n" + 
 				"    end;\n" + 
 				"   final := NUMERO + 1;\n" + 
+				"end.");
+		
+		testCode("program Test2;\n" + 
+				"\n" + 
+				"var\n" + 
+				"	NUMERO, n2: integer;\n" + 
+				"	final: integer;\n" + 
+				"\n" + 
+				"begin\n" + 
+				"	NUMERO := 3 / 5 + 7 - 9;\n" + 
+				"	\n" + 
+				"	if (NUMERO >= 20) or (NUMERO <= 90) then\n" + 
+				"	begin\n" + 
+				"		NUMERO := -10 / (-3);\n" + 
+				"	end;\n" + 
+				"\n" + 
+				"	do NUMERO := -10 / (-3)\n" + 
+				"	while (NUMERO >= 20);\n" + 
+				"\n" + 
+				"	final := NUMERO + 1;\n" + 
 				"end.");
 	}
 }

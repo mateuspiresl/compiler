@@ -243,6 +243,22 @@ public class SyntacticAnalyser
 		}
 		catch (SyntacticException e) { }
 		
+		// Do-while
+		try {
+			int inner = i;
+			
+			if (!has(inner) || !get(inner++).equals("do"))
+				throw new SyntacticException("Missing 'do' statement", previous(inner - 1));
+			
+			inner = matchCommand(inner);
+			
+			if (!has(inner) || !get(inner++).equals("while"))
+				throw new SyntacticException("Missing 'then' statement", previous(inner - 1));
+			
+			return  matchExpression(inner);
+		}
+		catch (SyntacticException e) { }
+		
 		return i;
 	}
 	
