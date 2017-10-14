@@ -5,13 +5,15 @@ import java.nio.file.Paths;
 import java.util.List;
 
 import lexicon.LexiconAnalyser;
-import lexicon.LexiconException;
 import lexicon.Symbol;
+import syntactic.SyntacticAnalyser;
 
-public class Program {
-	
+public class Program
+{
 	public static void main(String[] args) throws IOException
 	{
+		if (args.length == 0) args = new String[] { "test-files/test1.pas" };
+		
 		try
 		{
 			List<Symbol> symbols = LexiconAnalyser.process(
@@ -19,11 +21,12 @@ public class Program {
 			
 			for (Symbol symbol : symbols)
 				System.out.println(symbol.toFormatedString());
+	
+			new SyntacticAnalyser(symbols).analyse();
+			System.out.println("Success");
 		}
-		catch (LexiconException le)
-		{
-			System.out.println(le.getMessage());
+		catch (Exception e) {
+			System.out.println(e.getMessage());
 		}
 	}
-	
 }

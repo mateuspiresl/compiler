@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Eclipse
 
 .classpath
@@ -30,3 +31,9 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 /bin/
+=======
+/bin/
+
+.classpath
+.project
+>>>>>>> e959da4a441019b0178bcb5469875339e9d9ec24
