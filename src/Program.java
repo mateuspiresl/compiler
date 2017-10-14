@@ -6,6 +6,7 @@ import java.util.List;
 
 import lexicon.LexiconAnalyser;
 import lexicon.Symbol;
+import semantic.SemanticAnalyser;
 import syntactic.SyntacticAnalyser;
 
 public class Program
@@ -22,7 +23,7 @@ public class Program
 			for (Symbol symbol : symbols)
 				System.out.println(symbol.toFormatedString());
 	
-			new SyntacticAnalyser(symbols).analyse();
+			new SyntacticAnalyser(symbols, new SemanticAnalyser()).analyse();
 			System.out.println("Success");
 		}
 		catch (Exception e) {
