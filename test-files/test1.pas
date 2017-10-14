@@ -2,6 +2,9 @@ program teste; {programa exemplo}
 var
 	valor1: integer;
 	valor2: real;
+	valor: integer;
+	NUMERO: integer;
+	valor3: integer;
 
 procedure calcula_percentual (n1:real; per1:real); 
 begin 
@@ -14,23 +17,21 @@ begin
 end; 
 
 begin
-	
 	valor1 := 10;
 	valor2 := valor1 + 5;
-	valor := 1 + 5;
+	valor := calcula_percentual(1, 5);
 	NUMERO := 3 + 5 + 7 - 9;
 
 	if 3 > 4 then
 	begin
-	valor := 30;
+		valor := 30;
 	end;
 
-	if 3 > 4 then
-	begin
+	if 3 > 4
+	then begin
 		valor := 30;
 	end
-	else
-	begin
+	else begin
 		valor2 := valor2+1;
 	end;
 
