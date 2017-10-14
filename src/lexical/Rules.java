@@ -30,6 +30,7 @@ public abstract class Rules
 	public static final Set<String> OPERATORS_RELATIONAL = new HashSet<String>();
 	public static final Set<String> OPERATORS_ADDITIVE = new HashSet<String>();
 	public static final Set<String> OPERATORS_MULTIPLICATIVE = new HashSet<String>();
+	public static final Set<String> OPERATORS_LOGICAL = new HashSet<String>();
 	
 	static {
 		String identifierPattern = "[a-zA-Z][\\w\\d]*";
@@ -49,6 +50,7 @@ public abstract class Rules
 		List<String> relationalOperators = Arrays.asList(new String[] { "<=", ">=", "<>", "=", "<", ">" });
 		List<String> additiveOperators = Arrays.asList(new String[] { "+", "-" });
 		List<String> multiplicativeOperators = Arrays.asList(new String[] { "*", "/" });
+		List<String> logicalOperators = Arrays.asList(new String[] { "and", "or" });
 		
 		BOOLEAN_VALUES.addAll(booleanValues);
 		KEY_WORDS.addAll(keyWords);
@@ -56,9 +58,10 @@ public abstract class Rules
 		OPERATORS_RELATIONAL.addAll(relationalOperators);
 		OPERATORS_ADDITIVE.addAll(additiveOperators);
 		OPERATORS_MULTIPLICATIVE.addAll(multiplicativeOperators);
+		OPERATORS_LOGICAL.addAll(logicalOperators);
 		
-		OPERATORS_ADDITIVE.add("or");
-		OPERATORS_MULTIPLICATIVE.add("and");
+//		OPERATORS_ADDITIVE.add("or");
+//		OPERATORS_MULTIPLICATIVE.add("and");
 		
 		GENERAL_PATTERN = Pattern.compile(String.join("|", new ArrayList<String>() {{
 			add(regexScape(COMMENT_OPEN));
@@ -69,6 +72,7 @@ public abstract class Rules
 			add(patternFromList(relationalOperators));
 			add(patternFromList(additiveOperators));
 			add(patternFromList(multiplicativeOperators));
+			add("and|or");
 			add(complexPattern);
 			add(realPattern);
 			add(integerPattern);

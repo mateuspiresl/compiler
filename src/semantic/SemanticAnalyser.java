@@ -8,9 +8,11 @@ import java.util.Map;
 import lexical.Symbol;
 import lexical.TokenType;
 import syntactic.SyntacticListener;
+import utils.Log;
 
 public class SemanticAnalyser implements SyntacticListener
 {
+	private static final boolean DEBUG = true;
 	private static final String SCOPE = "$";
 	private static final String BLOCK = "#";
 	
@@ -60,6 +62,7 @@ public class SemanticAnalyser implements SyntacticListener
 	
 	private void pushExpression(int i, TokenType type) {
 		this.expressionStack.push(new IndexedValue<TokenType>(i, type));
+		printExpressions(3);
 	}
 	
 	private TokenType parseType(String token)
@@ -75,17 +78,33 @@ public class SemanticAnalyser implements SyntacticListener
 	
 	private void matchIndexAfter(int i)
 	{
+		boolean changed = false;
+		
 		while (!this.tokenStack.isEmpty() && this.tokenStack.peek().index > i) popToken();
 		while (!this.expressionStack.isEmpty() && this.expressionStack.peek().index > i)
-			this.expressionStack.pop();
+		{
+			IndexedValue<TokenType> type = this.expressionStack.pop();
+			Log.d(3, "Pop " + type.value + ", its index " + type.index + " > " + i);
+			changed = true;
+		}
+		
+		if (changed) printExpressions(4);
 	}
 	
 	@Override
 	public void matchIndex(int i)
 	{
+		boolean changed = false;
+		
 		while (!this.tokenStack.isEmpty() && this.tokenStack.peek().index >= i) popToken();
 		while (!this.expressionStack.isEmpty() && this.expressionStack.peek().index >= i)
-			this.expressionStack.pop();
+		{
+			IndexedValue<TokenType> type = this.expressionStack.pop();
+			Log.d(3, "Pop " + type.value + ", its index " + type.index + " >= " + i);
+			changed = true;
+		}
+		
+		if (changed) printExpressions(4);
 	}
 	
 	@Override
@@ -191,6 +210,7 @@ public class SemanticAnalyser implements SyntacticListener
 			else if (token.equals(symbol.getToken()))
 			{
 				TokenType type = this.variableTypes.get(getVariableKey(symbol.getToken(), scope));
+				Log.d(2, "Include " + type);
 				pushExpression(i, type);
 				return;
 			}
@@ -203,6 +223,7 @@ public class SemanticAnalyser implements SyntacticListener
 	public void onValue(int i, Symbol symbol)
 	{
 		matchIndex(i);
+		Log.d(2, "Include " + symbol.getToken());
 		pushExpression(i, symbol.getType());
 	}
 	
@@ -214,20 +235,22 @@ public class SemanticAnalyser implements SyntacticListener
 	@Override
 	public void onExpressionBegin(int i, Symbol symbol)
 	{
-		matchIndex(i);
+		matchIndexAfter(i);
 		pushExpression(i, null);
 	}
 	
 	@Override
 	public void onExpressionEnd(int i, Symbol symbol)
 	{
-		matchIndex(i);
+		matchIndexAfter(i);
 		
 		if (this.expressionStack.isEmpty())
 			throw new SemanticException("Ending expression that didn't start", symbol);
 		
 		TokenType current = null;
 		TokenType operator = null;
+		
+		printExpressions(2);
 		
 		Iterator<IndexedValue<TokenType>> it = this.expressionStack.iterator();
 		while (it.hasNext())
@@ -236,10 +259,12 @@ public class SemanticAnalyser implements SyntacticListener
 			
 			if (current == null) {
 				current = type;
+				Log.d(3, "Current: " + current);
 			}
 			else if (operator == null)
 			{
 				operator = type;
+				Log.d(3, "Operator: " + operator);
 				
 				// End of expression
 				if (type == null) break;
@@ -247,7 +272,12 @@ public class SemanticAnalyser implements SyntacticListener
 			// Expression is formed
 			else
 			{
-				if (operator == TokenType.AssignmentCommand) {
+				Log.d(4, "Formed expression: " + current + " " + operator + " " + type);
+				
+				if (operator == TokenType.AssignmentCommand)
+				{
+					// If types are equal, the result is the current,
+					// otherwise it's Real
 					if (current != type)
 					{
 						// If types are different:
@@ -260,27 +290,61 @@ public class SemanticAnalyser implements SyntacticListener
 						current = type;
 					}
 				}
-				
-				// No other operator supports the Boolean type
-				else if (current == TokenType.Boolean || type == TokenType.Boolean)
-					throw new SemanticException("Incompatible types in the same operation", symbol);
+				// Logical operations can only be applied to boolean values
+				// and its result is a boolean value
+				else if (operator == TokenType.LogicalOperator)
+				{
+					if (current != TokenType.Boolean || type != TokenType.Boolean)
+						throw new SemanticException("Incompatible types for logical operation", symbol);
+				}
+				else {
+					// No other operator supports the Boolean type
+					if (current == TokenType.Boolean || type == TokenType.Boolean)
+						throw new SemanticException("Incompatible types in the same operation", symbol);
 					
-				// The result of a relational operation is a boolean value
-				else if (operator == TokenType.RelationalOperator)
-					current = TokenType.Boolean;
+					// The result of a relational operation is a boolean value
+					else if (operator == TokenType.RelationalOperator)
+						current = TokenType.Boolean;
 					
-				// If type is Real, current should be Real, but if type is Integer,
-				// current should be kept as is, Real or Integer.
-				else if (type == TokenType.Real)
-					current = TokenType.Real;
+					// If type is Real, current should be Real, but if type is Integer,
+					// current should be kept as is, Real or Integer.
+					else if (type == TokenType.Real)
+						current = TokenType.Real;
+				}
 				
 				operator = null;
 			}
+			
+			printExpressions(4);
 		}
 		
-		if (operator != null) throw new SemanticException("Operation is not complete", symbol);
+		Log.d(3, "Expression result: " + current);
+		printExpressions(3);
 		
 		if (!this.expressionStack.isEmpty())
-			this.expressionStack.push(new IndexedValue<TokenType>(i, current));
+			pushExpression(this.expressionStack.peek().index, current);
+	}
+	
+	private void printExpressions(int tabs)
+	{
+		if (!DEBUG) return;
+		if (this.expressionStack.isEmpty()) {
+			Log.d(tabs, "Expression stack: --");
+			return;
+		}
+		
+		StringBuilder message = new StringBuilder();
+		message.append("Expression stack: ");
+		
+		Iterator<IndexedValue<TokenType>> it = this.expressionStack.descendingIterator();
+		while (it.hasNext())
+		{
+			IndexedValue<TokenType> val = it.next();
+			message.append(val.value + " ");
+		}
+		
+		message.append("(").append(this.expressionStack.peek().index).append(")");
+		
+		Log.d(tabs, message.toString());
 	}
 }

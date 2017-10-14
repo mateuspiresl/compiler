@@ -81,7 +81,6 @@ public class SyntacticAnalyserTest
 		testCode("program id; begin id := 1 end.");
 		testCode("program id; begin id := true end.");
 		testCode("program id; begin id := not true end.");
-		testCode("program id; begin id := proc(id) end.");
 		testCode("program id; begin id := id + 1 end.");
 		testCode("program id; begin id := id + (1 + 1) end.");
 		testCode("program id; begin id := id + (1 + 1) end.");
@@ -95,7 +94,7 @@ public class SyntacticAnalyserTest
 		testCode("program id; procedure proc; begin id := 1 end; begin end.");
 		testCode("program id; procedure proc; begin id := true end; begin end.");
 		testCode("program id; procedure proc; begin id := not true end; begin end.");
-		testCode("program id; procedure proc; begin id := proc(id) end; begin end.");
+		testCode("program id; procedure proc; begin id := id end; begin end.");
 		testCode("program id; procedure proc; begin id := id + 1 end; begin end.");
 		testCode("program id; procedure proc; begin id := id + (1 + 1) end; begin end.");
 		testCode("program id; procedure proc; begin id := id + (1 + 1) end; begin end.");

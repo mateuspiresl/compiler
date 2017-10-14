@@ -7,7 +7,7 @@ import java.util.Set;
 import lexical.Rules;
 import lexical.Symbol;
 import lexical.TokenType;
-import syntactic.SyntacticException;
+import utils.Log;
 
 public class SyntacticAnalyser
 {
@@ -224,12 +224,22 @@ public class SyntacticAnalyser
 		// Assignment
 		// variable := expression
 		try {
+			Log.d(1, "Command assignment BEGIN (" + (i - 1) + ")");
+			if (this.listener != null) this.listener.onExpressionBegin(i - 1, this.symbols.get(i - 1));
+			
 			int inner = matchVariable(i);
 			
-			if (!has(inner) || getType(inner++) != TokenType.AssignmentCommand)
-				throw new SyntacticException("Missing assignment command", previous(inner - 1));
+			if (!has(inner) || getType(inner) != TokenType.AssignmentCommand)
+				throw new SyntacticException("Missing assignment command", previous(inner));
 			
-			return matchExpression(inner);
+			if (this.listener != null) this.listener.onOperator(inner, this.symbols.get(inner));
+			
+			inner = matchExpression(inner + 1);
+			
+			Log.d(1, "Command assignment END (" + inner + ")");
+			if (this.listener != null) this.listener.onExpressionEnd(inner, this.symbols.get(inner));
+			
+			return inner;
 		}
 		catch (SyntacticException e) {
 			if (this.listener != null) this.listener.matchIndex(i);
@@ -326,10 +336,14 @@ public class SyntacticAnalyser
 		try {
 			int inner = i;
 			
-			if (!has(inner) || !Rules.OPERATORS_RELATIONAL.contains(get(inner++)))
-				throw new SyntacticException("Missing relational operator", previous(inner - 1));
+			if (!has(inner) || !(
+					   Rules.OPERATORS_RELATIONAL.contains(get(inner))
+					|| Rules.OPERATORS_LOGICAL.contains(get(inner))))
+				throw new SyntacticException("Missing relational operator", previous(inner));
 			
-			return matchSimpleExpression(inner);
+			if (this.listener != null) this.listener.onOperator(inner, this.symbols.get(inner));
+			
+			return matchSimpleExpression(inner + 1);
 		}
 		catch (SyntacticException e) {
 			if (this.listener != null) this.listener.matchIndex(i);
@@ -369,18 +383,37 @@ public class SyntacticAnalyser
 	{
 		if (!has(i)) throw new SyntacticException("Missing expression", previous(i));
 		
+		Log.d(1, "Simple expression BEGIN (" + (i - 1) + ")");
+		if (this.listener != null) this.listener.onExpressionBegin(i - 1, this.symbols.get(i - 1));
+		
 		if (get(i).equals("+") || get(i).equals("-")) i++;
 		
 		i = matchTerm(i);
-		return matchSimpleExpressionComplement(i);
+		i = matchSimpleExpressionComplement(i);
+		
+		Log.d(1, "Simple expression END (" + i + ")");
+		if (this.listener != null) this.listener.onExpressionEnd(i, this.symbols.get(i));
+		
+		return i;
 	}
 	
 	private int matchSimpleExpressionComplement(int i)
 	{
 		if (has(i) && Rules.OPERATORS_ADDITIVE.contains(get(i)))
 		{
+			if (this.listener != null)
+			{
+				this.listener.onOperator(i, this.symbols.get(i));
+				
+				Log.d(1, "Simple expression complement BEGIN (" + (i - 1) + ")");
+				this.listener.onExpressionBegin(i, this.symbols.get(i - 1));
+			}
+			
 			i = matchTerm(i + 1);
-			return matchSimpleExpressionComplement(i);
+			i = matchSimpleExpressionComplement(i);
+			
+			Log.d(1, "Simple expression complement END (" + i + ")");
+			if (this.listener != null) this.listener.onExpressionEnd(i, this.symbols.get(i));
 		}
 		
 		return i;
@@ -391,7 +424,10 @@ public class SyntacticAnalyser
 		i = matchFactor(i);
 		
 		if (has(i) && Rules.OPERATORS_MULTIPLICATIVE.contains(get(i)))
+		{
+			if (this.listener != null) this.listener.onOperator(i, this.symbols.get(i));
 			return matchTerm(i + 1);
+		}
 		
 		return i;
 	}
@@ -400,28 +436,20 @@ public class SyntacticAnalyser
 	{
 		if (!has(i)) throw new SyntacticException("Missing factor", previous(i));
 		
-		
 		if (getType(i) == TokenType.Identifier)
 		{
-			int inner = i + 1;
-			
-			// Procedure list of expressions
-			if (get(inner).equals("("))
-			{
-				inner = matchExpressionList(inner + 1);
-				
-				if (!has(inner) || !get(inner++).equals(")"))
-					throw new SyntacticException("Missing delimitier ')' from procedure list of expressions", previous(inner - 1));
-			}
-			
-			return inner;
+			return matchVariable(i);
 		}
 		else if (get(i).equals("("))
 		{
+			if (this.listener != null) this.listener.onExpressionBegin(i, this.symbols.get(i));
+			
 			i = matchExpression(i + 1);
 			
 			if (!has(i) || !get(i).equals(")"))
 				throw new SyntacticException("Missing ')'", previous(i));
+			
+			if (this.listener != null) this.listener.onExpressionEnd(i, this.symbols.get(i));
 			
 			return i + 1;
 		}
@@ -431,11 +459,14 @@ public class SyntacticAnalyser
 		}
 		else
 		{
-			if (   		getType(i) != TokenType.Integer
-					&&	getType(i) != TokenType.Real
-					&& !get(i).equals("true")
-					&& !get(i).equals("false"))
+			Symbol symbol = this.symbols.get(i);
+			
+			if (   		symbol.getType() != TokenType.Integer
+					&&	symbol.getType() != TokenType.Real
+					&&	symbol.getType() != TokenType.Boolean)
 				throw new SyntacticException("Didn't match any factor possibility", previous(i));
+			
+			if (this.listener != null) this.listener.onValue(i, this.symbols.get(i));
 			
 			return i + 1;
 		}

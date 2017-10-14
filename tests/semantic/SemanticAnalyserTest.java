@@ -4,8 +4,12 @@ import static org.junit.Assert.fail;
 
 import org.junit.Test;
 
+import lexical.LexicalAnalyser;
 import lexical.Symbol;
 import lexical.TokenType;
+import syntactic.SyntacticAnalyser;
+import syntactic.SyntacticException;
+import utils.Log;
 
 public class SemanticAnalyserTest
 {
@@ -470,5 +474,72 @@ public class SemanticAnalyserTest
 		analyser.onExpressionEnd(i++, s);
 		
 		analyser.onBlockEnd(i++, s);
+	}
+	
+	private static void testCode(String code) {
+		Log.d(0, "Test: " + code);
+		new SyntacticAnalyser(new LexicalAnalyser().processCode(code).done(), new SemanticAnalyser()).analyse();
+	}
+	
+	private static void failCode(String code) {
+		try {
+			testCode(code);
+			fail("Should have throw an exception");
+		} catch (SemanticException | SyntacticException e) { }
+	}
+	
+	@Test
+	public void testExpressionsOnCode()
+	{
+		testCode("program prog; var a: integer; begin a := 1; end.");
+		testCode("program prog; var a: integer; begin a := ((1)); end.");
+		testCode("program prog; var a: real; begin a := 1; end.");
+		testCode("program prog; var a: real; begin a := ((1.0)); end.");
+		testCode("program prog; var a: boolean; begin a := true; end.");
+		
+		failCode("program prog; var a: integer; begin a := 1.0; end.");
+		failCode("program prog; var a: integer; begin a := true; end.");
+		failCode("program prog; var a: boolean; begin a := 1.0; end.");
+		failCode("program prog; var a: boolean; begin a := 1; end.");
+		
+		// Additive operators
+		testCode("program prog; var a: integer; begin a := 1 + 1; end.");
+		testCode("program prog; var a: integer; begin a := (1 + (1 + 1)) + 1; end.");
+		testCode("program prog; var a: real; begin a := 1 + 1; end.");
+		testCode("program prog; var a: real; begin a := (1 + (1 + 1)) + 1; end.");
+		testCode("program prog; var a: real; begin a := (1 + (1 + 1.0)) + 1; end.");
+		
+		failCode("program prog; var a: integer; begin a := 1 + 1.0; end.");
+		failCode("program prog; var a: integer; begin a := (1 + (1 + 1.0)) + 1.0; end.");
+		
+		// Multiplicative operators
+		testCode("program prog; var a: integer; begin a := 1 * 1; end.");
+		testCode("program prog; var a: integer; begin a := (1 + (1 * 1)) * 1; end.");
+		testCode("program prog; var a: real; begin a := 1 * 1; end.");
+		testCode("program prog; var a: real; begin a := (1 + (1 * 1)) + 1; end.");
+		testCode("program prog; var a: real; begin a := (1 * (1 + 1.0)) * 1; end.");
+		
+		failCode("program prog; var a: integer; begin a := 1 * 1.0; end.");
+		failCode("program prog; var a: integer; begin a := (1 + (1 * 1.0)) * 1.0; end.");
+		
+		// Relational operators
+		testCode("program prog; var a: boolean; begin a := 1 * 1 >= 0; end.");
+		testCode("program prog; var a: boolean; begin a := 1 <= (1 + (1 * 1)) * 1; end.");
+		testCode("program prog; var a: boolean; begin a := 1 = 1; end.");
+		testCode("program prog; var a: boolean; begin a := (1 + (1 * 1)) > 1; end.");
+		testCode("program prog; var a: boolean; begin a := (1 * (1 + 1.0)) < 1; end.");
+		
+		failCode("program prog; var a: integer; begin a := 1 > 1.0; end.");
+		failCode("program prog; var a: integer; begin a := (1 + (1 < 1.0)) * 1.0; end.");
+		
+		// Logical operators
+		testCode("program prog; var a: boolean; begin a := true and false; end.");
+		testCode("program prog; var a: boolean; begin a := (1 > 2) or (1 <= ((1 + (1 * 1)) * 1)); end.");
+		testCode("program prog; var a: boolean; begin a := (1 = 1) and (1 < 1); end.");
+		testCode("program prog; var a: boolean; begin a := true or ((1 + (1 * 1)) > 1); end.");
+		testCode("program prog; var a: boolean; begin a := ((1 + 1 * 1) > 1) or ((1 * 1 + 1.0) < 1); end.");
+		
+		failCode("program prog; var a: integer; begin a := true and 1; end.");
+		failCode("program prog; var a: integer; begin a := (1 + (1 < 1.0)) or false; end.");
 	}
 }

@@ -19,7 +19,6 @@ end;
 begin
 	valor1 := 10;
 	valor2 := valor1 + 5;
-	valor := calcula_percentual(1, 5);
 	NUMERO := 3 + 5 + 7 - 9;
 
 	if 3 > 4 then

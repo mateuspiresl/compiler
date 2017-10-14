@@ -84,7 +84,7 @@ public class LexicalAnalyserTest {
 	}
 	
 	@Test
-	public void testSpecialOperators()
+	public void testLogicalOperators()
 	{
 		List<Symbol> symbols = LexicalAnalyser.process(
 				"1 and 2\n" + 
@@ -98,23 +98,23 @@ public class LexicalAnalyserTest {
 		assertEquals(15, symbols.size());
 		
 		assertEquals(new Symbol("1", TokenType.Integer, 1), symbols.get(index++));
-		assertEquals(new Symbol("and", TokenType.MultiplicativeOperator, 1), symbols.get(index++));
+		assertEquals(new Symbol("and", TokenType.LogicalOperator, 1), symbols.get(index++));
 		assertEquals(new Symbol("2", TokenType.Integer, 1), symbols.get(index++));
 		
 		assertEquals(new Symbol("3", TokenType.Integer, 2), symbols.get(index++));
-		assertEquals(new Symbol("or", TokenType.AdditiveOperator, 2), symbols.get(index++));
+		assertEquals(new Symbol("or", TokenType.LogicalOperator, 2), symbols.get(index++));
 		assertEquals(new Symbol("4", TokenType.Integer, 2), symbols.get(index++));
 		
 		assertEquals(new Symbol("a", TokenType.Identifier, 3), symbols.get(index++));
-		assertEquals(new Symbol("and", TokenType.MultiplicativeOperator, 3), symbols.get(index++));
+		assertEquals(new Symbol("and", TokenType.LogicalOperator, 3), symbols.get(index++));
 		assertEquals(new Symbol("5", TokenType.Integer, 3), symbols.get(index++));
 		
 		assertEquals(new Symbol("6", TokenType.Integer, 4), symbols.get(index++));
-		assertEquals(new Symbol("or", TokenType.AdditiveOperator, 4), symbols.get(index++));
+		assertEquals(new Symbol("or", TokenType.LogicalOperator, 4), symbols.get(index++));
 		assertEquals(new Symbol("b", TokenType.Identifier, 4), symbols.get(index++));
 		
 		assertEquals(new Symbol("c", TokenType.Identifier, 5), symbols.get(index++));
-		assertEquals(new Symbol("and", TokenType.MultiplicativeOperator, 5), symbols.get(index++));
+		assertEquals(new Symbol("and", TokenType.LogicalOperator, 5), symbols.get(index++));
 		assertEquals(new Symbol("d", TokenType.Identifier, 5), symbols.get(index++));
 	}
 	

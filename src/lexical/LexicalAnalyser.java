@@ -101,6 +101,9 @@ public class LexicalAnalyser {
 				else if (Rules.COMPLEX_PATTERN.matcher(lower).matches())
 					type = TokenType.Complex;
 				
+				else if (Rules.BOOLEAN_VALUES.contains(lower))
+					type = TokenType.Boolean;
+				
 				else if (Rules.DELIMITERS.contains(lower))
 					type = TokenType.Delimiter;
 				
@@ -113,8 +116,8 @@ public class LexicalAnalyser {
 				else if (Rules.OPERATORS_MULTIPLICATIVE.contains(lower))
 					type = TokenType.MultiplicativeOperator;
 				
-				else if (Rules.BOOLEAN_VALUES.contains(lower))
-					type = TokenType.Boolean;
+				else if (Rules.OPERATORS_LOGICAL.contains(lower))
+					type = TokenType.LogicalOperator;
 				
 				else if (Rules.KEY_WORDS.contains(lower))
 					type = TokenType.KeyWord;

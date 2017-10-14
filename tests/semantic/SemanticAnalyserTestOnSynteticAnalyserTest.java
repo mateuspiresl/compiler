@@ -17,7 +17,7 @@ public class SemanticAnalyserTestOnSynteticAnalyserTest
 		try {
 			testCode(code);
 			fail("Should have throw an exception");
-		} catch (SyntacticException e) { }
+		} catch (SemanticException | SyntacticException e) { }
 	}
 	
 	@Test
@@ -79,9 +79,8 @@ public class SemanticAnalyserTestOnSynteticAnalyserTest
 	{
 		testCode("program prog; var id: integer; begin id := id end.");
 		testCode("program prog; var id: integer; begin id := 1 end.");
-		testCode("program prog; var id: integer; begin id := true end.");
-		testCode("program prog; var id: integer; begin id := not true end.");
-		testCode("program prog; var id: integer; begin id := proc(id) end.");
+		testCode("program prog; var id: boolean; begin id := true end.");
+		testCode("program prog; var id: boolean; begin id := not true end.");
 		testCode("program prog; var id: integer; begin id := id + 1 end.");
 		testCode("program prog; var id: integer; begin id := id + (1 + 1) end.");
 		testCode("program prog; var id: integer; begin id := id + (1 + 1) end.");
@@ -93,9 +92,8 @@ public class SemanticAnalyserTestOnSynteticAnalyserTest
 		
 		testCode("program prog; var id: integer; procedure proc; begin id := id end; begin end.");
 		testCode("program prog; var id: integer; procedure proc; begin id := 1 end; begin end.");
-		testCode("program prog; var id: integer; procedure proc; begin id := true end; begin end.");
-		testCode("program prog; var id: integer; procedure proc; begin id := not true end; begin end.");
-		testCode("program prog; var id: integer; procedure proc; begin id := proc(id) end; begin end.");
+		testCode("program prog; var id: boolean; procedure proc; begin id := true end; begin end.");
+		testCode("program prog; var id: boolean; procedure proc; begin id := not true end; begin end.");
 		testCode("program prog; var id: integer; procedure proc; begin id := id + 1 end; begin end.");
 		testCode("program prog; var id: integer; procedure proc; begin id := id + (1 + 1) end; begin end.");
 		testCode("program prog; var id: integer; procedure proc; begin id := id + (1 + 1) end; begin end.");
@@ -129,7 +127,7 @@ public class SemanticAnalyserTestOnSynteticAnalyserTest
 	}
 	
 	@Test
-	public void fullTest()
+	public void fullTest1()
 	{
 		testCode("program teste; {programa exemplo}\n" + 
 				"var\n" + 
@@ -152,7 +150,6 @@ public class SemanticAnalyserTestOnSynteticAnalyserTest
 				"begin\n" + 
 				"	valor1 := 10;\n" + 
 				"	valor2 := valor1 + 5;\n" + 
-				"	valor := calcula_percentual(1, 5);\n" + 
 				"	NUMERO := 3 + 5 + 7 - 9;\n" + 
 				"\n" + 
 				"	if 3 > 4 then\n" + 
@@ -172,8 +169,13 @@ public class SemanticAnalyserTestOnSynteticAnalyserTest
 				"	begin\n" + 
 				"		valor3 := 4 + 3;\n" + 
 				"	end;\n" + 
-				"end.\n");
-		
+				"end.\n" + 
+				"\n");
+	}
+	
+	@Test
+	public void fullTest2()
+	{
 		testCode("program Test2;\n" + 
 				"\n" + 
 				"var\n" + 
