@@ -4,9 +4,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import lexicon.Rules;
-import lexicon.Symbol;
-import lexicon.TokenType;
+import lexical.Rules;
+import lexical.Symbol;
+import lexical.TokenType;
 import syntactic.SyntacticException;
 
 public class SyntacticAnalyser

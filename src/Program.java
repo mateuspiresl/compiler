@@ -4,8 +4,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 
-import lexicon.LexiconAnalyser;
-import lexicon.Symbol;
+import lexical.LexicalAnalyser;
+import lexical.Symbol;
 import semantic.SemanticAnalyser;
 import syntactic.SyntacticAnalyser;
 
@@ -17,7 +17,7 @@ public class Program
 		
 		try
 		{
-			List<Symbol> symbols = LexiconAnalyser.process(
+			List<Symbol> symbols = LexicalAnalyser.process(
 					Files.readAllLines(Paths.get(args[0]), StandardCharsets.UTF_8));
 			
 			for (Symbol symbol : symbols)

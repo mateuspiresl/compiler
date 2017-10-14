@@ -1,4 +1,4 @@
-package lexicon;
+package lexical;
 
 /**
  * Represents a symbol.

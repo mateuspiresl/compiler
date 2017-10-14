@@ -3,14 +3,14 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
-import lexicon.LexiconAnalyser;
+import lexical.LexicalAnalyser;
 import syntactic.SyntacticAnalyser;
 import syntactic.SyntacticException;
 
 public class SyntacticAnalyserTest
 {
 	private static void testCode(String code) {
-		new SyntacticAnalyser(new LexiconAnalyser().processCode(code).done()).analyse();
+		new SyntacticAnalyser(new LexicalAnalyser().processCode(code).done()).analyse();
 	}
 	
 	private static void failCode(String code) {

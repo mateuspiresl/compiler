@@ -1,6 +1,6 @@
 package semantic;
 
-import lexicon.Symbol;
+import lexical.Symbol;
 
 @SuppressWarnings("serial")
 public class SemanticException extends RuntimeException

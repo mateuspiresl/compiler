@@ -1,4 +1,4 @@
-package lexicon;
+package lexical;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -7,6 +7,8 @@ import static org.junit.Assert.assertTrue;
 import java.util.regex.Matcher;
 
 import org.junit.Test;
+
+import lexical.Rules;
 
 public class RulesTest {
 	

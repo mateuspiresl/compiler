@@ -1,4 +1,4 @@
-package lexicon;
+package lexical;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -7,12 +7,17 @@ import java.util.List;
 
 import org.junit.Test;
 
-public class LexiconAnalyserTest {
+import lexical.LexicalAnalyser;
+import lexical.LexicalException;
+import lexical.Symbol;
+import lexical.TokenType;
+
+public class LexicalAnalyserTest {
 
 	@Test
 	public void test()
 	{
-		List<Symbol> symbols = LexiconAnalyser.process(
+		List<Symbol> symbols = LexicalAnalyser.process(
 				"program teste; {programa exemplo}\n" + 
 				"var\n" + 
 				"	valor1: integer;\n" + 
@@ -55,7 +60,7 @@ public class LexiconAnalyserTest {
 	@Test
 	public void testReal()
 	{
-		List<Symbol> symbols = LexiconAnalyser.process(
+		List<Symbol> symbols = LexicalAnalyser.process(
 				"1\n" + 
 				".\n" + 
 				"2\n" + 
@@ -81,7 +86,7 @@ public class LexiconAnalyserTest {
 	@Test
 	public void testSpecialOperators()
 	{
-		List<Symbol> symbols = LexiconAnalyser.process(
+		List<Symbol> symbols = LexicalAnalyser.process(
 				"1 and 2\n" + 
 				"3 or 4\n" + 
 				"a and 5\n" + 
@@ -116,7 +121,7 @@ public class LexiconAnalyserTest {
 	@Test
 	public void testMultcharacterOperators()
 	{
-		List<Symbol> symbols = LexiconAnalyser.process(
+		List<Symbol> symbols = LexicalAnalyser.process(
 				"1 >= 2\n" + 
 				"3 > 4\n" + 
 				"a = 5\n"
@@ -141,14 +146,14 @@ public class LexiconAnalyserTest {
 	@Test
 	public void testErrors()
 	{
-		try { assertEquals(null, LexiconAnalyser.process("{asd\\nqwe")); }
-		catch (LexiconException le) { assertTrue(true); }
+		try { assertEquals(null, LexicalAnalyser.process("{asd\\nqwe")); }
+		catch (LexicalException le) { assertTrue(true); }
 		
-		try { assertEquals(null, LexiconAnalyser.process("asd}\nqwe")); }
-		catch (LexiconException le) { assertTrue(true); }
+		try { assertEquals(null, LexicalAnalyser.process("asd}\nqwe")); }
+		catch (LexicalException le) { assertTrue(true); }
 		
-		try { assertEquals(null, LexiconAnalyser.process("as%d\\nqwe")); }
-		catch (LexiconException le) { assertTrue(true); }
+		try { assertEquals(null, LexicalAnalyser.process("as%d\\nqwe")); }
+		catch (LexicalException le) { assertTrue(true); }
 	}
 	
 }

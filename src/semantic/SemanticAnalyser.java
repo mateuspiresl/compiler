@@ -5,8 +5,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
 
-import lexicon.Symbol;
-import lexicon.TokenType;
+import lexical.Symbol;
+import lexical.TokenType;
 import syntactic.SyntacticListener;
 
 public class SemanticAnalyser implements SyntacticListener

@@ -1,6 +1,6 @@
 package syntactic;
 
-import lexicon.Symbol;
+import lexical.Symbol;
 
 public interface SyntacticListener
 {

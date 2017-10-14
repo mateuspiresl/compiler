@@ -2,7 +2,7 @@ package syntactic;
 
 import java.util.ListIterator;
 
-import lexicon.Symbol;
+import lexical.Symbol;
 
 @SuppressWarnings("serial")
 public class SyntacticException extends RuntimeException

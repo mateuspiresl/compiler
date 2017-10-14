@@ -4,8 +4,8 @@ import static org.junit.Assert.fail;
 
 import org.junit.Test;
 
-import lexicon.Symbol;
-import lexicon.TokenType;
+import lexical.Symbol;
+import lexical.TokenType;
 
 public class SemanticAnalyserTest
 {

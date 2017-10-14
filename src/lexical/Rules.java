@@ -1,4 +1,4 @@
-package lexicon;
+package lexical;
 
 import java.util.ArrayList;
 import java.util.Arrays;

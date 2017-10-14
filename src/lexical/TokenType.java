@@ -1,4 +1,4 @@
-package lexicon;
+package lexical;
 
 /**
  * Represents all token types.

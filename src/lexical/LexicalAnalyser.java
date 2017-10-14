@@ -1,4 +1,4 @@
-package lexicon;
+package lexical;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -7,7 +7,7 @@ import java.util.regex.Matcher;
 /**
  * Process the a source code lexicographically.
  */
-public class LexiconAnalyser {
+public class LexicalAnalyser {
 	
 	private List<Symbol> symbols;
 	// Indicates a comment opening symbol was found, but no comment
@@ -19,7 +19,7 @@ public class LexiconAnalyser {
 	/**
 	 * The constructor.
 	 */
-	public LexiconAnalyser() {
+	public LexicalAnalyser() {
 		this.symbols = new ArrayList<>();
 	}
 
@@ -28,7 +28,7 @@ public class LexiconAnalyser {
 	 * @param code the entire code.
 	 * @return itself.
 	 */
-	public LexiconAnalyser processCode(String code) {
+	public LexicalAnalyser processCode(String code) {
 		return processLines(code.split("\n"));
 	}
 	
@@ -37,7 +37,7 @@ public class LexiconAnalyser {
 	 * @param lines the list of lines.
 	 * @return itself.
 	 */
-	public LexiconAnalyser processLines(List<String> lines) {
+	public LexicalAnalyser processLines(List<String> lines) {
 		return processLines(lines.toArray(new String[0]));
 	}
 
@@ -46,7 +46,7 @@ public class LexiconAnalyser {
 	 * @param lines the array of lines.
 	 * @return itself.
 	 */
-	public LexiconAnalyser processLines(String[] lines)
+	public LexicalAnalyser processLines(String[] lines)
 	{
 		for (int i = 0; i < lines.length; i++)
 			processLine(lines[i]);
@@ -59,7 +59,7 @@ public class LexiconAnalyser {
 	 * @param line the line.
 	 * @return itself.
 	 */
-	public LexiconAnalyser processLine(String line)
+	public LexicalAnalyser processLine(String line)
 	{
 		this.at++;
 		
@@ -83,7 +83,7 @@ public class LexiconAnalyser {
 					commenting = true;
 				
 				else if (lower.equals(Rules.COMMENT_CLOSE))
-					throw new LexiconException("Closing comment without open, at " + at);
+					throw new LexicalException("Closing comment without open, at " + at);
 				
 				else if (lower.equals(Rules.COMMENT_INLINE))
 					// Ignores everything after an inline comment
@@ -122,7 +122,7 @@ public class LexiconAnalyser {
 				else if (Rules.IDENTIFIER_PATTERN.matcher(lower).matches())
 					type = TokenType.Identifier;
 				
-				else throw new LexiconException("The symbol '" + subToken + "' does not belong to this language, at " + at);
+				else throw new LexicalException("The symbol '" + subToken + "' does not belong to this language, at " + at);
 				
 				if (type != null) this.symbols.add(new Symbol(lower, type, at));
 			}
@@ -168,24 +168,24 @@ public class LexiconAnalyser {
 	/**
 	 * Returns the list of symbols.
 	 * @return the list of symbols.
-	 * @throws LexiconException if a comment wasn't closed.
+	 * @throws LexicalException if a comment wasn't closed.
 	 */
 	public List<Symbol> done()
 	{
-		if (this.commenting) throw new LexiconException("Comment not closed, at EOF");
+		if (this.commenting) throw new LexicalException("Comment not closed, at EOF");
 		return this.symbols;
 	}
 	
 	public static List<Symbol> process(String code) {
-		return new LexiconAnalyser().processCode(code).done();
+		return new LexicalAnalyser().processCode(code).done();
 	}
 	
 	public static List<Symbol> process(String[] lines) {
-		return new LexiconAnalyser().processLines(lines).done();
+		return new LexicalAnalyser().processLines(lines).done();
 	}
 	
 	public static List<Symbol> process(List<String> lines) {
-		return new LexiconAnalyser().processLines(lines).done();
+		return new LexicalAnalyser().processLines(lines).done();
 	}
 	
 }
