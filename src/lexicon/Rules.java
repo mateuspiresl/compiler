@@ -24,7 +24,8 @@ public abstract class Rules
 	public static final String COMMENT_CLOSE = "}";
 	public static final String COMMENT_INLINE = "//";
 	
-	public static final Set<String> KEY_WORDS;
+	public static final Set<String> KEY_WORDS = new HashSet<String>();
+	public static final Set<String> BOOLEAN_VALUES = new HashSet<String>();
 	public static final Set<String> DELIMITERS = new HashSet<String>();
 	public static final Set<String> OPERATORS_RELATIONAL = new HashSet<String>();
 	public static final Set<String> OPERATORS_ADDITIVE = new HashSet<String>();
@@ -41,19 +42,16 @@ public abstract class Rules
 		REAL_PATTERN = Pattern.compile(wrapPattern(realPattern));
 		COMPLEX_PATTERN = Pattern.compile(wrapPattern(complexPattern));
 		
-		KEY_WORDS = new HashSet<String>() {{
-			add("program");	add("var");		add("integer");
-			add("real");	add("boolean");	add("procedure");
-			add("begin");	add("end");		add("if");
-			add("then");	add("else");	add("while");
-			add("do");		add("not");
-		}};
-		
+		List<String> booleanValues = Arrays.asList(new String[] { "true", "false" });
+		List<String> keyWords = Arrays.asList(new String[] { "program", "var", "integer", "real", "boolean",
+				"procedure", "begin", "end", "if", "then", "else", "while", "do", "not" });
 		List<String> delimiters = Arrays.asList(new String[] { ";", ".", ":", ",", "(", ")" });
 		List<String> relationalOperators = Arrays.asList(new String[] { "<=", ">=", "<>", "=", "<", ">" });
 		List<String> additiveOperators = Arrays.asList(new String[] { "+", "-" });
 		List<String> multiplicativeOperators = Arrays.asList(new String[] { "*", "/" });
 		
+		BOOLEAN_VALUES.addAll(booleanValues);
+		KEY_WORDS.addAll(keyWords);
 		DELIMITERS.addAll(delimiters);
 		OPERATORS_RELATIONAL.addAll(relationalOperators);
 		OPERATORS_ADDITIVE.addAll(additiveOperators);

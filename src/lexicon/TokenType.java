@@ -8,6 +8,8 @@ public enum TokenType {
 	Identifier("Identificador"),
 	Integer("Número inteiro"),
 	Real("Número real"),
+	Boolean("Booleano"),
+	Complex("Número complexo"),
 	Delimiter("Delimitador"),
 	AssignmentCommand("Comando de atribuição"),
 	RelationalOperator("Operador relacional"),
@@ -19,7 +21,7 @@ public enum TokenType {
 	private TokenType(String asString) {
 		this.asString = asString;
 	}
-	
+
 	@Override
 	public String toString() {
 		return this.asString;
