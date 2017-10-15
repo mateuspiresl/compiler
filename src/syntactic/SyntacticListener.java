@@ -33,4 +33,7 @@ public interface SyntacticListener
 	public void onProcedureArgumentsBegin(int i, Symbol symbol);
 	public void onProcedureArgumentsEnd(int i, Symbol symbol);
 	public void onProcedureArgument(int i, Symbol symbol);
+	
+	// Control
+	public void onControlCondition(int i, Symbol symbol);
 }

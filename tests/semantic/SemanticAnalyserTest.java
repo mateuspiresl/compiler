@@ -79,34 +79,32 @@ public class SemanticAnalyserTest
 	}
 	
 	@Test
-	public void testAutoIndexMatching()
+	public void testControlCondition()
 	{
 		SemanticAnalyser analyser = new SemanticAnalyser();
 		
-		analyser.onScopeBegin(i++, l++);
-		analyser.onScopeBegin(i, l++);
+		analyser.onScopeBegin(i++, 0);
+		analyser.onBlockBegin(i++, s);
 		
-		analyser.onScopeEnd(i, l++);
-		analyser.onScopeEnd(i, l++);
+		analyser.onExpressionBegin(i++, s);
 		
-		try { analyser.onScopeEnd(i + 1, l++); fail(); }
+		analyser.onExpressionBegin(i++, s);
+		analyser.onValue(i++, new Symbol("", TokenType.Integer, 0));
+		analyser.onOperator(i++, new Symbol("", TokenType.AdditiveOperator, 0));
+		analyser.onValue(i++, new Symbol("", TokenType.Real, 0));
+		analyser.onExpressionEnd(i++, s);
+		
+		try { analyser.onControlCondition(i++, s); fail(); }
 		catch (SemanticException e) { }
 		
-		analyser.onScopeBegin(++i, l++);
-		analyser.onScopeBegin(i + 1, l++);
+		analyser.onOperator(i++, new Symbol("", TokenType.RelationalOperator, 0));
+		analyser.onValue(i++, new Symbol("", TokenType.Integer, 0));
 		
-		analyser.onScopeEnd(i, l++);
+		analyser.onExpressionEnd(i++, s);
+		analyser.onControlCondition(i++, s);
 		
-		try { analyser.onScopeEnd(i + 1, l++); fail(); }
-		catch (SemanticException e) { }
-		
-		analyser.onBlockBegin(++i, s);
-		analyser.onBlockBegin(i + 1, s);
-		
-		analyser.onBlockEnd(i + 1, s);
-		
-		try { analyser.onBlockEnd(i + 1, s); fail(); }
-		catch (SemanticException e) { }
+		analyser.onBlockEnd(i++, s);
+		analyser.onScopeEnd(i++, 0);
 	}
 	
 	@Test
@@ -789,5 +787,19 @@ public class SemanticAnalyserTest
 		failCode("program prog; procedure proc(a: integer, b: real, c: boolean); begin proc(1, 1.0, 1); end; begin end.");
 		failCode("program prog; procedure proc(a: integer, b: real, c: boolean); begin proc(true, 1.0, false); end; begin end.");
 		failCode("program prog; procedure proc(a: integer, b: real, c: boolean); begin proc(1, false, true); end; begin end.");
+	}
+	
+	@Test
+	public void testControlConditionsOnCode()
+	{
+		testCode("program prog; var id: integer; begin if id > 1 then id := 1 end.");
+		testCode("program prog; var id: integer; begin if id > 1 + (1.9 * 2) then id := 1 end.");
+		testCode("program prog; var id: integer; begin while 1 + id > 1 do id := 1 end.");
+		testCode("program prog; var id: integer; begin while 1 + id > 1 * 2 do id := 1 end.");
+		
+		failCode("program prog; var id: integer; begin if id + 1 then id := 1 end.");
+		failCode("program prog; var id: integer; begin if id * 1 + (1.9 * 2) then id := 1 end.");
+		failCode("program prog; var id: integer; begin while 1 + id / 1 do id := 1 end.");
+		failCode("program prog; var id: integer; begin while 1 + id - 1 * 2 do id := 1 end.");
 	}
 }

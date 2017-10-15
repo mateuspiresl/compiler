@@ -118,4 +118,10 @@ public class EmptySyntaticListener implements SyntacticListener {
 
 	}
 
+	@Override
+	public void onControlCondition(int i, Symbol symbol) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

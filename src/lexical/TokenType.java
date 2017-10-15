@@ -7,6 +7,7 @@ import utils.Log;
  */
 public enum TokenType {
 	KeyWord("Key-word"),
+	Program("Program"),
 	Procedure("Procedure"),
 	Identifier("Identifier"),
 	Integer("Integer"),

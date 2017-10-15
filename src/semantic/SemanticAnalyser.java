@@ -81,6 +81,8 @@ public class SemanticAnalyser implements SyntacticListener
 		case "integer": return TokenType.Integer;
 		case "real": 	return TokenType.Real;
 		case "boolean": return TokenType.Boolean;
+		case "program": return TokenType.Program;
+		case "procedure": return TokenType.Procedure;
 		default: 		return null;
 		}
 	}
@@ -277,8 +279,14 @@ public class SemanticAnalyser implements SyntacticListener
 			{
 				TokenType type = this.identifiersTypes.get(getIdentifierKey(symbol.getToken(), scope));
 
+				if (type == TokenType.Program)
+					throw new SemanticException("Using the program identifier as variable", symbol);
+				
 				if (type == TokenType.Procedure)
 					throw new SemanticException("Using procedure as variable", symbol);
+				
+				if (type == null)
+					throw new SemanticException("Unknown type variable", symbol);
 
 				Log.d(2, "Include " + type);
 				pushExpression(i, type);
@@ -502,5 +510,12 @@ public class SemanticAnalyser implements SyntacticListener
 		if ((expectedType != TokenType.Real || this.lastExpressionType != TokenType.Integer)
 				&& expectedType != this.lastExpressionType)
 			throw new SemanticException("Invalid argument type", symbol);
+	}
+
+	@Override
+	public void onControlCondition(int i, Symbol symbol)
+	{
+		if (this.lastExpressionType != TokenType.Boolean)
+			throw new SemanticException("Expression result for control statement isn't boolean", symbol);
 	}
 }
