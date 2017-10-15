@@ -5,12 +5,20 @@ import lexical.Symbol;
 public interface SyntacticListener
 {
 	public void matchIndex(int i);
+	
+	// Scope
 	public void onScopeBegin(int i, int line);
 	public void onScopeEnd(int i, int line);
+	
+	// Block
 	public void onBlockBegin(int i, Symbol symbol);
 	public void onBlockEnd(int i, Symbol symbol);
+	
+	// Variables
 	public void onVariableDeclaration(int i, Symbol symbol);
 	public void onTypeDefinition(int i, Symbol symbol);
+	
+	// Expressions
 	public void onVariable(int i, Symbol symbol);
 	public void onValue(int i, Symbol symbol);
 	public void onOperator(int i, Symbol symbol);

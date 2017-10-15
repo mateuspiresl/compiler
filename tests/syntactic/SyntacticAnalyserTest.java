@@ -6,10 +6,12 @@ import org.junit.Test;
 import lexical.LexicalAnalyser;
 import syntactic.SyntacticAnalyser;
 import syntactic.SyntacticException;
+import utils.Log;
 
 public class SyntacticAnalyserTest
 {
 	private static void testCode(String code) {
+		Log.t(0, code);
 		new SyntacticAnalyser(new LexicalAnalyser().processCode(code).done()).analyse();
 	}
 	
@@ -17,7 +19,9 @@ public class SyntacticAnalyserTest
 		try {
 			testCode(code);
 			fail("Should have throw an exception");
-		} catch (SyntacticException e) { }
+		} catch (SyntacticException e) {
+			Log.t(1, e.getMessage());
+		}
 	}
 	
 	@Test
@@ -30,6 +34,14 @@ public class SyntacticAnalyserTest
 		failCode("program begin end.");
 		failCode("program id begin end.");
 		failCode("program ; begin end.");
+		failCode("program prog; begin end. if");
+		failCode("program prog; procedure proc(a, b: integer");
+		failCode("program prog; begin x :=");
+		failCode("program prog; begin end");
+		failCode("program prog; begin");
+		failCode("program prog;");
+		failCode("program prog");
+		failCode("program");
 	}
 	
 	@Test

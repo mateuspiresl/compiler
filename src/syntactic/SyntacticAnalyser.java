@@ -30,44 +30,55 @@ public class SyntacticAnalyser
 	}
 	
 	public SyntacticAnalyser(List<Symbol> symbols) {
-		this(symbols, null);
+		this(symbols, new EmptySyntaticListener());
 	}
+	
+	// Helpers
+	private boolean 	has(int i) 						{ return this.symbols.size() > i; }
+	private Symbol 		get(int i) 						{ return this.symbols.get(i); }
+	private String 		getToken(int i) 				{ return get(i).getToken(); }
+	private TokenType 	getType(int i) 					{ return get(i).getType(); }
+	private boolean 	isToken(int i, String token) 	{ return getToken(i).equals(token); }
+	private boolean 	isType(int i, TokenType type) 	{ return getType(i) == type; }
+	private int 		at(int i) 						{ return get(i).getAt(); }
+	private Symbol 		last(int i) 					{ while (!has(i)) i--; return get(i); }
 	
 	public void analyse()
 	{
 		int i = 0;
 		
-		if (!has(i) || !get(i++).equals("program"))
-			throw new SyntacticException("Missing key word 'program'", previous(i));
-		
-		if (!has(i) || getType(i++) != TokenType.Identifier)
-			throw new SyntacticException("Missing program identifier", previous(i));
-		
-		if (this.listener != null) this.listener.onScopeBegin(i - 1, this.symbols.get(i - 1).getAt());
-		
-		if (!has(i) || !get(i++).equals(";"))
-			throw new SyntacticException("Missing ';'", previous(i));
-		
-		i = matchVariableDeclarations(i);
-		i = matchProcedureDeclarations(i);
-		i = matchCompoundCommand(i);
-		
-		if (this.listener != null) this.listener.onScopeEnd(i - 1, this.symbols.get(i - 1).getAt());
-		
-		if (!has(i) || !get(i++).equals("."))
-			throw new SyntacticException("Missing '.' at end of file", previous(i));
-		
-		if (has(i)) new RuntimeException("Remaining");
+		try {
+			if (!isToken(i++, "program"))
+				throw new SyntacticException("Missing key word 'program'", get(i - 1));
+			
+			if (!isType(i++, TokenType.Identifier))
+				throw new SyntacticException("Missing program identifier", get(i - 1));
+			
+			this.listener.onScopeBegin(i - 1, at(i - 1));
+			
+			if (!getToken(i++).equals(";"))
+				throw new SyntacticException("Missing ';'", get(i - 1));
+			
+			i = matchVariableDeclarations(i);
+			i = matchProcedureDeclarations(i);
+			i = matchCompoundCommand(i);
+			
+			this.listener.onScopeEnd(i - 1, at(i - 1));
+
+			if (!getToken(i).equals("."))
+				throw new SyntacticException("Missing '.' at end of file", get(i));
+			
+			if (has(i + 1))
+				throw new SyntacticException("Remaining code after program end");
+		}
+		catch (IndexOutOfBoundsException e) {
+			throw new SyntacticException("Unexpected end of file", last(i));
+		}
 	}
-	
-	private boolean has(int i) { return this.symbols.size() > i; }
-	private String get(int i) { return this.symbols.get(i).getToken(); }
-	private TokenType getType(int i) { return this.symbols.get(i).getType(); }
-	private Symbol previous(int i) { return this.symbols.get(has(i) ? i : i - 1); }
 	
 	private int matchVariableDeclarations(int i)
 	{
-		if (has(i) && get(i).equals("var"))
+		if (isToken(i, "var"))
 			return matchVariableDeclarationList(i + 1, true);
 		
 		return i;
@@ -77,23 +88,23 @@ public class SyntacticAnalyser
 	{
 		int state = i;
 		
-		if ((i = matchIdentifiersList(i)) <= state) {
-			if (primary) throw new SyntacticException("Missing identifier", previous(i));
-		}
-		else
+		if ((i = matchIdentifiersList(i)) > state)
 		{
-			if (!has(i) || !get(i++).equals(":"))
-				throw new SyntacticException("Missing ':'", previous(i - 1));
+			if (!getToken(i).equals(":"))
+				throw new SyntacticException("Missing ':'", get(i));
 			
-			if (!has(i) || !TYPES.contains(get(i++)))
-				throw new SyntacticException("Invalid or missing type", previous(i - 1));
+			if (!TYPES.contains(getToken(++i)))
+				throw new SyntacticException("Invalid or missing type", get(i));
 			
-			if (this.listener != null) this.listener.onTypeDefinition(i - 1, this.symbols.get(i - 1));
+			this.listener.onTypeDefinition(i, get(i));
 			
-			if (!has(i) || !get(i++).equals(";"))
-				throw new SyntacticException("Missing ';'", previous(i - 1));
+			if (!getToken(++i).equals(";"))
+				throw new SyntacticException("Missing ';'", get(i));
 			
-			return matchVariableDeclarationList(i, false);
+			return matchVariableDeclarationList(i + 1, false);
+		}
+		else if (primary) {
+			throw new SyntacticException("Missing identifier", get(i));
 		}
 		
 		return i;
@@ -101,15 +112,17 @@ public class SyntacticAnalyser
 	
 	private int matchIdentifiersList(int i)
 	{
-		if (!has(i) || getType(i++) != TokenType.Identifier)
-			return i - 1;
+		if (!isType(i, TokenType.Identifier)) return i;
 
-		if (this.listener != null) this.listener.onVariableDeclaration(i - 1, this.symbols.get(i - 1));
+		this.listener.onVariableDeclaration(i, get(i));
 		
-		int state = i;
-		
-		if (has(i) && get(i).equals(",") && (i = matchIdentifiersList(i + 1)) <= state + 1)
-			throw new SyntacticException("Missing identifier", previous(i + 1));
+		if (isToken(++i, ","))
+		{
+			int state = i + 1;
+			
+			if ((i = matchIdentifiersList(state)) == state)
+				throw new SyntacticException("Missing identifier", get(i));
+		}
 		
 		return i;
 	}
@@ -117,13 +130,14 @@ public class SyntacticAnalyser
 	private int matchProcedureDeclarations(int i)
 	{
 		int state = i;
+		i = matchProcedureDeclaration(i);
 		
-		if (has(i) && (i = matchProcedureDeclaration(i)) > state)
+		if (i > state)
 		{
-			if (!has(i) || !get(i++).equals(";"))
-				throw new SyntacticException("Missing ';'", previous(i - 1));
+			if (!isToken(i, ";"))
+				throw new SyntacticException("Missing ';'", get(i));
 			
-			i = matchProcedureDeclarations(i);
+			i = matchProcedureDeclarations(i + 1);
 		}
 		
 		return i;
@@ -131,92 +145,79 @@ public class SyntacticAnalyser
 	
 	private int matchProcedureDeclaration(int i)
 	{
-		if (!get(i++).equals("procedure"))
-			return i - 1;
+		if (!isToken(i, "procedure"))
+			return i;
 		
-		if (!has(i) || getType(i) != TokenType.Identifier)
-			throw new SyntacticException("Missing procedure identifier", previous(i));
+		if (!isType(++i, TokenType.Identifier))
+			throw new SyntacticException("Missing procedure identifier", get(i));
 		
-		if (this.listener != null)
-		{
-			this.listener.onProcedureDeclaration(i, this.symbols.get(i));
-			this.listener.onScopeBegin(i, this.symbols.get(i).getAt());
-		}
-		
-		i = i + 1;
-		
-		if (this.listener != null) this.listener.onProcedureParametersDeclarationBegin(i, this.symbols.get(i));
+		this.listener.onProcedureDeclaration(i, get(i));
+		this.listener.onScopeBegin(i, at(i));
+		this.listener.onProcedureParametersDeclarationBegin(i + 1, get(i + 1));
 
-		i = matchParameters(i);
+		i = matchParameters(i + 1);
 		
-		if (this.listener != null) this.listener.onProcedureParametersDeclarationEnd(i, this.symbols.get(i));
+		this.listener.onProcedureParametersDeclarationEnd(i, get(i));
 		
-		if (!has(i) || !get(i++).equals(";"))
-			throw new SyntacticException("Missing ';'", previous(i - 1));
+		if (!isToken(i, ";"))
+			throw new SyntacticException("Missing ';'", get(i));
 		
-		i = matchVariableDeclarations(i);
+		i = matchVariableDeclarations(i + 1);
 		i = matchProcedureDeclarations(i);
 		i = matchCompoundCommand(i);
 		
-		if (this.listener != null) this.listener.onScopeEnd(i - 1, this.symbols.get(i - 1).getAt());
+		this.listener.onScopeEnd(i - 1, at(i - 1));
 		
 		return i;
 	}
 	
 	private int matchParameters(int i)
 	{
-		if (get(i).equals("("))
+		if (isToken(i, "("))
 		{
 			i = matchParametersList(i + 1);
 			
-			if (!has(i) || !get(i++).equals(")"))
-				throw new SyntacticException("Missing ')'", this.symbols.get(i - 1));
+			if (!isToken(i, ")"))
+				throw new SyntacticException("Missing ')'", get(i));
 			
-			return i;
+			return i + 1;
 		}
 		else return i;
 	}
 	
 	private int matchParametersList(int i)
 	{
-		int inner = matchIdentifiersList(i);
-		if (i == inner) return i;
+		int state = i;
 		
-		if (!has(inner) || !get(inner++).equals(":"))
-			throw new SyntacticException("Missing ':'", previous(inner - 1));
+		if ((i = matchIdentifiersList(i)) == state)
+			return i;
 		
-		if (!has(inner) || !TYPES.contains(get(inner++)))
-			throw new SyntacticException("Invalid or missing type", this.symbols.get(inner - 1));
+		if (!isToken(i, ":"))
+			throw new SyntacticException("Missing ':'", get(i));
 		
-		if (this.listener != null) this.listener.onTypeDefinition(inner - 1, this.symbols.get(inner - 1));
+		if (!TYPES.contains(getToken(++i)))
+			throw new SyntacticException("Invalid or missing type", get(i));
 		
-		if (has(inner) && get(inner).equals(";"))
-			inner = matchParametersList(inner + 1);
+		this.listener.onTypeDefinition(i, get(i));
 		
-		return inner;
+		return isToken(++i, ";") ? matchParametersList(i + 1) : i;
 	}
 	
 	private int matchCompoundCommand(int i)
 	{
-		if (!has(i) || !get(i++).equals("begin"))
-			throw new SyntacticException("Missing 'begin' command", previous(i));
+		if (!isToken(i, "begin"))
+			throw new SyntacticException("Missing 'begin' command", get(i));
 		
-		if (this.listener != null) this.listener.onBlockBegin(i - 1, this.symbols.get(i - 1));
+		this.listener.onBlockBegin(i, get(i));
 		
-		i = matchOptionalCommands(i);
+		i = matchCommandList(i + 1);
 		
-		if (!has(i) || !get(i).equals("end"))
-			throw new SyntacticException("Missing 'end' command", this.symbols.get(i));
+		if (!isToken(i, "end"))
+			throw new SyntacticException("Missing 'end' command", get(i));
 		
-		if (this.listener != null) this.listener.onBlockEnd(i, this.symbols.get(i));
+		if (this.listener != null) this.listener.onBlockEnd(i, get(i));
 		
 		return i + 1;
-	}
-	
-	private int matchOptionalCommands(int i)
-	{
-		if (has(i)) return matchCommandList(i);
-		else return i;
 	}
 	
 	private int matchCommandList(int i)
@@ -226,7 +227,7 @@ public class SyntacticAnalyser
 		if ((i = matchCommand(i)) <= status)
 			return status;
 		
-		if (has(i) && get(i).equals(";"))
+		if (isToken(i, ";"))
 			return matchCommandList(i + 1);
 			
 		return i;
@@ -234,32 +235,25 @@ public class SyntacticAnalyser
 	
 	private int matchCommand(int i)
 	{
-		if (getType(i) == TokenType.Identifier)
+		if (isType(i, TokenType.Identifier))
 		{
-			// Assignment
-			// variable := expression
 			Log.d(1, "Command assignment BEGIN (" + (i - 1) + ")");
-			if (this.listener != null) this.listener.onExpressionBegin(i - 1, this.symbols.get(i - 1));
+			this.listener.onExpressionBegin(i - 1, get(i - 1));
 			
-			int inner = matchVariable(i);
+			i = matchIdentifier(i);
 			
-			if (!has(inner)) throw new SyntacticException("Missing assignment command", previous(inner));
+			if (!isType(i, TokenType.AssignmentCommand))
+				return matchProcedureCall(i - 1);
 			
-			if (getType(inner) != TokenType.AssignmentCommand)
-				return matchProcedureCall(i);
+			this.listener.onVariable(i - 1, get(i - 1));
+			this.listener.onOperator(i, get(i));
 			
-			if (this.listener != null)
-			{
-				this.listener.onVariable(i, this.symbols.get(i));
-				this.listener.onOperator(inner, this.symbols.get(inner));
-			}
+			i = matchExpression(i + 1);
 			
-			inner = matchExpression(inner + 1);
+			Log.d(1, "Command assignment END (" + i + ")");
+			this.listener.onExpressionEnd(i, get(i));
 			
-			Log.d(1, "Command assignment END (" + inner + ")");
-			if (this.listener != null) this.listener.onExpressionEnd(inner,this.symbols.get(inner));
-			
-			return inner;
+			return i;
 		}
 		
 		// Inner compound command
@@ -274,15 +268,15 @@ public class SyntacticAnalyser
 		try {
 			int inner = i;
 			
-			if (!has(inner) || !get(inner++).equals("if"))
-				throw new SyntacticException("Missing 'if' statement", previous(inner - 1));
+			if (!isToken(inner, "if"))
+				throw new SyntacticException("Missing 'if' statement", get(inner));
 			
-			inner = matchExpression(inner);
+			inner = matchExpression(inner + 1);
 			
-			if (!has(inner) || !get(inner++).equals("then"))
-				throw new SyntacticException("Missing 'then' statement", previous(inner - 1));
+			if (!isToken(inner, "then"))
+				throw new SyntacticException("Missing 'then' statement", get(inner));
 			
-			inner = matchCommand(inner);
+			inner = matchCommand(inner + 1);
 			return matchElse(inner);
 		}
 		catch (SyntacticException e) {
@@ -293,15 +287,15 @@ public class SyntacticAnalyser
 		try {
 			int inner = i;
 			
-			if (!has(inner) || !get(inner++).equals("while"))
-				throw new SyntacticException("Missing 'while' statement", previous(inner - 1));
+			if (!isToken(inner, "while"))
+				throw new SyntacticException("Missing 'while' statement", get(inner));
 			
-			inner = matchExpression(inner);
+			inner = matchExpression(inner + 1);
 			
-			if (!has(inner) || !get(inner++).equals("do"))
-				throw new SyntacticException("Missing 'then' statement", previous(inner - 1));
+			if (!isToken(inner, "do"))
+				throw new SyntacticException("Missing 'then' statement", get(inner));
 			
-			return matchCommand(inner);
+			return matchCommand(inner + 1);
 		}
 		catch (SyntacticException e) {
 			if (this.listener != null) this.listener.matchIndex(i);
@@ -311,15 +305,15 @@ public class SyntacticAnalyser
 		try {
 			int inner = i;
 			
-			if (!has(inner) || !get(inner++).equals("do"))
-				throw new SyntacticException("Missing 'do' statement", previous(inner - 1));
+			if (!isToken(inner, "do"))
+				throw new SyntacticException("Missing 'do' statement", get(inner));
 			
-			inner = matchCommand(inner);
+			inner = matchCommand(inner + 1);
 			
-			if (!has(inner) || !get(inner++).equals("while"))
-				throw new SyntacticException("Missing 'then' statement", previous(inner - 1));
+			if (!isToken(inner, "while"))
+				throw new SyntacticException("Missing 'then' statement", get(inner));
 			
-			return  matchExpression(inner);
+			return  matchExpression(inner + 1);
 		}
 		catch (SyntacticException e) {
 			if (this.listener != null) this.listener.matchIndex(i);
@@ -328,10 +322,10 @@ public class SyntacticAnalyser
 		return i;
 	}
 	
-	private int matchVariable(int i)
+	private int matchIdentifier(int i)
 	{
-		if (!has(i) || getType(i) != TokenType.Identifier)
-			throw new SyntacticException("Missing identifier", previous(i));
+		if (!has(i) || !isType(i, TokenType.Identifier))
+			throw new SyntacticException("Missing identifier", last(i));
 		
 		return i + 1;
 	}
@@ -344,11 +338,11 @@ public class SyntacticAnalyser
 			int inner = i;
 			
 			if (!has(inner) || !(
-					   Rules.OPERATORS_RELATIONAL.contains(get(inner))
-					|| Rules.OPERATORS_LOGICAL.contains(get(inner))))
-				throw new SyntacticException("Missing relational operator", previous(inner));
+					   Rules.OPERATORS_RELATIONAL.contains(getToken(inner))
+					|| Rules.OPERATORS_LOGICAL.contains(getToken(inner))))
+				throw new SyntacticException("Missing relational operator", last(inner));
 			
-			if (this.listener != null) this.listener.onOperator(inner, this.symbols.get(inner));
+			this.listener.onOperator(inner, get(inner));
 			
 			return matchSimpleExpression(inner + 1);
 		}
@@ -361,83 +355,72 @@ public class SyntacticAnalyser
 	private int matchProcedureCall(int i)
 	{
 		try {
-			i = matchVariable(i);
+			i = matchIdentifier(i);
 			
-			if (this.listener != null)
-			{
-				this.listener.onProcedure(i - 1, this.symbols.get(i - 1));
-				
-				Log.d(1, "Procedure parameters BEGIN (" + (i) + ")");
-				this.listener.onProcedureArgumentsBegin(i, this.symbols.get(i));
-			}
+			this.listener.onProcedure(i - 1, get(i - 1));
 			
-			if (get(i).equals("("))
+			Log.d(1, "Procedure parameters BEGIN (" + (i) + ")");
+			this.listener.onProcedureArgumentsBegin(i, get(i));
+			
+			if (isToken(i, "("))
 			{
-				if (get(i + 1).equals(")")) {
+				if (isToken(i + 1, ")")) {
 					i += 2;
 				}
 				else {
 					i = matchExpressionList(i + 1);
 					
-					if (!has(i) || !get(i++).equals(")"))
-						throw new SyntacticException("Missing delimitier ')' from procedure call", previous(i - 1));
+					if (!isToken(i++, ")"))
+						throw new SyntacticException("Missing delimitier ')' from procedure call", get(i - 1));
 				}
 			}
 			
 			Log.d(1, "Procedure parameters END (" + (i) + ")");
-			if (this.listener != null) this.listener.onProcedureArgumentsEnd(i, this.symbols.get(i));
+			this.listener.onProcedureArgumentsEnd(i, get(i));
 			
 			return i;
 		}
 		catch (SyntacticException e) {
-			e.printStackTrace();
-			throw new SyntacticException("Missing procedure call identifier", previous(i));
+			throw new SyntacticException("Missing procedure call identifier", get(i));
 		}
 	}
 	
-	private int matchElse(int i)
-	{
-		if (has(i) && get(i).equals("else"))
-			return matchCommand(i + 1);
-		
-		return i;
+	private int matchElse(int i) {
+		return isToken(i, "else") ? matchCommand(i + 1) : i;
 	}
 	
 	private int matchSimpleExpression(int i)
 	{
-		if (!has(i)) throw new SyntacticException("Missing expression", previous(i));
+		if (!has(i)) throw new SyntacticException("Missing expression", last(i));
 		
 		Log.d(1, "Simple expression BEGIN (" + (i - 1) + ")");
-		if (this.listener != null) this.listener.onExpressionBegin(i - 1, this.symbols.get(i - 1));
+		this.listener.onExpressionBegin(i - 1, get(i - 1));
 		
-		if (get(i).equals("+") || get(i).equals("-")) i++;
+		if (isToken(i, "+") || isToken(i, "-")) i++;
 		
 		i = matchTerm(i);
 		i = matchSimpleExpressionComplement(i);
 		
 		Log.d(1, "Simple expression END (" + i + ")");
-		if (this.listener != null) this.listener.onExpressionEnd(i, this.symbols.get(i));
+		this.listener.onExpressionEnd(i, get(i));
 		
 		return i;
 	}
 	
 	private int matchSimpleExpressionComplement(int i)
 	{
-		if (has(i) && Rules.OPERATORS_ADDITIVE.contains(get(i)))
+		if (has(i) && Rules.OPERATORS_ADDITIVE.contains(getToken(i)))
 		{
-			if (this.listener != null)
-			{
-				this.listener.onOperator(i, this.symbols.get(i));
-				
-				Log.d(1, "Simple expression complement BEGIN (" + (i - 1) + ")");
-				this.listener.onExpressionBegin(i, this.symbols.get(i - 1));
-			}
+			this.listener.onOperator(i, get(i));
+			
+			Log.d(1, "Simple expression complement BEGIN (" + (i - 1) + ")");
+			this.listener.onExpressionBegin(i, get(i - 1));
 			
 			i = matchTerm(i + 1);
 			i = matchSimpleExpressionComplement(i);
 			
 			Log.d(1, "Simple expression complement END (" + i + ")");
-			if (this.listener != null) this.listener.onExpressionEnd(i, this.symbols.get(i));
+			this.listener.onExpressionEnd(i, get(i));
 		}
 		
 		return i;
@@ -447,9 +430,9 @@ public class SyntacticAnalyser
 	{
 		i = matchFactor(i);
 		
-		if (has(i) && Rules.OPERATORS_MULTIPLICATIVE.contains(get(i)))
+		if (Rules.OPERATORS_MULTIPLICATIVE.contains(getToken(i)))
 		{
-			if (this.listener != null) this.listener.onOperator(i, this.symbols.get(i));
+			this.listener.onOperator(i, get(i));
 			return matchTerm(i + 1);
 		}
 		
@@ -458,43 +441,40 @@ public class SyntacticAnalyser
 	
 	private int matchFactor(int i)
 	{
-		if (!has(i)) throw new SyntacticException("Missing factor", previous(i));
+		if (!has(i)) throw new SyntacticException("Missing factor", last(i));
 		
-		if (getType(i) == TokenType.Identifier)
+		if (isType(i, TokenType.Identifier))
 		{
-			int inner = matchVariable(i);
+			int inner = matchIdentifier(i);
 			
-			if (this.listener != null) this.listener.onVariable(i, this.symbols.get(i));
+			this.listener.onVariable(i, get(i));
 			
 			return inner;
 		}
-		else if (get(i).equals("("))
+		else if (isToken(i, "("))
 		{
-			if (this.listener != null) this.listener.onExpressionBegin(i, this.symbols.get(i));
+			this.listener.onExpressionBegin(i, get(i));
 			
 			i = matchExpression(i + 1);
 			
-			if (!has(i) || !get(i).equals(")"))
-				throw new SyntacticException("Missing ')'", previous(i));
+			if (!isToken(i, ")"))
+				throw new SyntacticException("Missing ')'", get(i));
 			
-			if (this.listener != null) this.listener.onExpressionEnd(i, this.symbols.get(i));
+			this.listener.onExpressionEnd(i, get(i));
 			
 			return i + 1;
 		}
-		else if (get(i).equals("not"))
+		else if (isToken(i, "not"))
 		{
 			return matchFactor(i + 1);
 		}
 		else
 		{
-			Symbol symbol = this.symbols.get(i);
+			if (!isType(i, TokenType.Integer) && !isType(i, TokenType.Real)
+					&& !isType(i, TokenType.Boolean))
+				throw new SyntacticException("Didn't match any factor possibility", get(i));
 			
-			if (   		symbol.getType() != TokenType.Integer
-					&&	symbol.getType() != TokenType.Real
-					&&	symbol.getType() != TokenType.Boolean)
-				throw new SyntacticException("Didn't match any factor possibility", previous(i));
-			
-			if (this.listener != null) this.listener.onValue(i, this.symbols.get(i));
+			this.listener.onValue(i, get(i));
 			
 			return i + 1;
 		}
@@ -503,20 +483,14 @@ public class SyntacticAnalyser
 	private int matchExpressionList(int i)
 	{
 		Log.d(1, "Parameter expression BEGIN (" + (i - 1) + ")");
-		if (this.listener != null) this.listener.onExpressionBegin(i - 1, this.symbols.get(i - 1));
+		this.listener.onExpressionBegin(i - 1, get(i - 1));
 		
 		i = matchExpression(i);
 		
-		if (this.listener != null)
-		{
-			Log.d(1, "Parameter expression END (" + i + ")");
-			this.listener.onExpressionEnd(i, this.symbols.get(i));
-			this.listener.onProcedureArgument(i, this.symbols.get(i));
-		}
+		Log.d(1, "Parameter expression END (" + i + ")");
+		this.listener.onExpressionEnd(i, get(i));
+		this.listener.onProcedureArgument(i, get(i));
 		
-		if (has(i) && get(i).equals(","))
-			return matchExpressionList(i + 1);
-		
-		return i;
+		return isToken(i, ",") ? matchExpressionList(i + 1) : i;
 	}
 }
