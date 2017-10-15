@@ -18,21 +18,18 @@ public class SemanticAnalyser implements SyntacticListener
 	
 	private LinkedList<IndexedValue<String>> tokenStack = new LinkedList<>();
 	private LinkedList<IndexedValue<TokenType>> expressionStack = new LinkedList<>();
-	private Map<String, TokenType> variableTypes = new HashMap<>();
+	private Map<String, TokenType> identifiersTypes = new HashMap<>();
+	
 	private int scopeCount = 0;
 	private int blockCount = 0;
 	private int untypedVariables = 0;
-	
-	public int getScopeCount() { return this.scopeCount; }
-	public int getBlockCount() { return this.blockCount; }
-	public int getUntypedVariables() { return this.untypedVariables; }
 
-	private String getVariableKey(String name, int scope) {
+	private String getIdentifierKey(String name, int scope) {
 		return String.format("%s+%s", scope, name);
 	}
 	
-	private String getVariableKey(String name) {
-		return getVariableKey(name, this.scopeCount);
+	private String getIdentifierKey(String name) {
+		return getIdentifierKey(name, this.scopeCount);
 	}
 	
 	private void pushToken(int i, String token) {
@@ -51,10 +48,10 @@ public class SemanticAnalyser implements SyntacticListener
 		}
 		else
 		{
-			String variableKey = getVariableKey(token);
+			String variableKey = getIdentifierKey(token);
 			
-			if (this.variableTypes.containsKey(variableKey))
-				this.variableTypes.remove(variableKey);
+			if (this.identifiersTypes.containsKey(variableKey))
+				this.identifiersTypes.remove(variableKey);
 		}
 		
 		return token;
@@ -154,6 +151,30 @@ public class SemanticAnalyser implements SyntacticListener
 	}
 	
 	@Override
+	public void onProcedureDeclaration(int i, Symbol symbol)
+	{
+		matchIndex(i);
+		
+		if (this.blockCount > 0)
+			throw new SemanticException("Declaring the procedure inside a block", symbol); 
+		
+		Iterator<IndexedValue<String>> it = this.tokenStack.iterator();
+		while (it.hasNext())
+		{
+			String token = it.next().value;
+			
+			if (token.equals(symbol.getToken()))
+				throw new SemanticException("The procedure is already declared in this scope", symbol);
+			
+			else if (token.equals(SCOPE))
+				break;
+		}
+				
+		pushToken(i, symbol.getToken());
+		this.identifiersTypes.put(getIdentifierKey(symbol.getToken()), TokenType.Procedure);
+	}
+	
+	@Override
 	public void onVariableDeclaration(int i, Symbol symbol)
 	{
 		matchIndex(i);
@@ -180,15 +201,49 @@ public class SemanticAnalyser implements SyntacticListener
 	@Override
 	public void onTypeDefinition(int i, Symbol symbol)
 	{
+		matchIndex(i);
+		
 		TokenType type = parseType(symbol.getToken());
 		Iterator<IndexedValue<String>> it = this.tokenStack.iterator();
 		
 		while (this.untypedVariables-- > 0)
-			this.variableTypes.put(getVariableKey(it.next().value), type);
+			this.identifiersTypes.put(getIdentifierKey(it.next().value), type);
 		
 		this.untypedVariables = 0;
 	}
 
+	@Override
+	public void onProcedure(int i, Symbol symbol)
+	{
+		matchIndex(i);
+		
+		if (this.blockCount == 0)
+			throw new SemanticException("Using procedure outside a block", symbol); 
+		
+		Iterator<IndexedValue<String>> it = this.tokenStack.iterator();
+		int scope = this.scopeCount; 
+		
+		while (it.hasNext())
+		{
+			String token = it.next().value;
+			
+			if (token.equals(SCOPE)) {
+				scope--;
+			}
+			else if (token.equals(symbol.getToken()))
+			{
+				TokenType type = this.identifiersTypes.get(getIdentifierKey(symbol.getToken(), scope));
+				
+				if (type != TokenType.Procedure)
+					throw new SemanticException("Using variable as procedure", symbol);
+				
+				return;
+			}
+		}
+		
+		throw new SemanticException("The procedure was not declared", symbol);
+	}
+	
 	@Override
 	public void onVariable(int i, Symbol symbol)
 	{
@@ -209,7 +264,11 @@ public class SemanticAnalyser implements SyntacticListener
 			}
 			else if (token.equals(symbol.getToken()))
 			{
-				TokenType type = this.variableTypes.get(getVariableKey(symbol.getToken(), scope));
+				TokenType type = this.identifiersTypes.get(getIdentifierKey(symbol.getToken(), scope));
+
+				if (type == TokenType.Procedure)
+					throw new SemanticException("Using procedure as variable", symbol);
+
 				Log.d(2, "Include " + type);
 				pushExpression(i, type);
 				return;
@@ -255,60 +314,67 @@ public class SemanticAnalyser implements SyntacticListener
 		Iterator<IndexedValue<TokenType>> it = this.expressionStack.iterator();
 		while (it.hasNext())
 		{
-			TokenType type = it.next().value; it.remove();
+			TokenType base = it.next().value; it.remove();
 			
 			if (current == null) {
-				current = type;
+				current = base;
 				Log.d(3, "Current: " + current);
 			}
 			else if (operator == null)
 			{
-				operator = type;
+				operator = base;
 				Log.d(3, "Operator: " + operator);
 				
 				// End of expression
-				if (type == null) break;
+				if (base == null) break;
 			}
 			// Expression is formed
 			else
 			{
-				Log.d(4, "Formed expression: " + current + " " + operator + " " + type);
+				Log.d(4, "Formed expression: " + base + " " + operator + " " + current);
 				
 				if (operator == TokenType.AssignmentCommand)
 				{
-					// If types are equal, the result is the current,
+					// If types are equal, the result is the current type,
 					// otherwise it's Real
-					if (current != type)
+					if (base != current)
 					{
-						// If types are different:
-						// 	 - If type is Boolean, throw because it can't match with any other type;
-						//   - If type is Integer, throw because it can only be assigned with Integer variables;
-						//	 - If current is Boolean, type is Real, which is incompatible.
-						if (type == TokenType.Boolean || type == TokenType.Integer || current == TokenType.Boolean)
-							throw new SemanticException("Incompatible types in the same operation", symbol);
+						Log.d(5, "Different types: " + base + " and " + current);
 						
-						current = type;
+						// As the types are different:
+						// 	 - If base or current are Boolean, throw because boolean values
+						//			can only be in the same operation with another boolean
+						//			value;
+						//   - If base is Integer, throw because current is Real and it can
+						//			only be assigned to Real variables.
+						if (base == TokenType.Boolean || current == TokenType.Boolean
+								|| base == TokenType.Integer)
+							throw new SemanticException("Incompatible types are been assigned", symbol);
+						
+						current = TokenType.Real;
 					}
 				}
 				// Logical operations can only be applied to boolean values
-				// and its result is a boolean value
+				// Its result is a boolean value, so the current value doesn't
+				// need to be changed
 				else if (operator == TokenType.LogicalOperator)
 				{
-					if (current != TokenType.Boolean || type != TokenType.Boolean)
+					if (base != TokenType.Boolean || current != TokenType.Boolean)
 						throw new SemanticException("Incompatible types for logical operation", symbol);
 				}
 				else {
 					// No other operator supports the Boolean type
-					if (current == TokenType.Boolean || type == TokenType.Boolean)
+					if (base == TokenType.Boolean || current == TokenType.Boolean)
 						throw new SemanticException("Incompatible types in the same operation", symbol);
 					
 					// The result of a relational operation is a boolean value
 					else if (operator == TokenType.RelationalOperator)
 						current = TokenType.Boolean;
 					
-					// If type is Real, current should be Real, but if type is Integer,
-					// current should be kept as is, Real or Integer.
-					else if (type == TokenType.Real)
+					// Additive or multiplicative operation
+					// If base is Real, current should be Real, but if base is Integer,
+					// current should be kept as is (Real or Integer)
+					else if (base == TokenType.Real)
 						current = TokenType.Real;
 				}
 				

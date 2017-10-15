@@ -1,11 +1,12 @@
 package semantic;
-import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
 
 import org.junit.Test;
 
 import lexical.LexicalAnalyser;
 import syntactic.SyntacticAnalyser;
 import syntactic.SyntacticException;
+import utils.Log;
 
 public class SemanticAnalyserTestOnSynteticAnalyserTest
 {
@@ -17,7 +18,9 @@ public class SemanticAnalyserTestOnSynteticAnalyserTest
 		try {
 			testCode(code);
 			fail("Should have throw an exception");
-		} catch (SemanticException | SyntacticException e) { }
+		} catch (SemanticException | SyntacticException e) {
+			Log.d(0, "Exception: " + e.getMessage());
+		}
 	}
 	
 	@Test
@@ -56,6 +59,17 @@ public class SemanticAnalyserTestOnSynteticAnalyserTest
 	}
 	
 	@Test
+	public void testVariables()
+	{
+		testCode("program prog; var id: integer; begin id := 1 end.");
+		testCode("program prog; var id: integer; id2: real; id3: boolean; begin id := 1; id2 := id; id3 := id2 = id; end.");
+		testCode("program prog; var id: integer; procedure proc; var id2: real; begin id2 := 1.0; id := 1; end; begin id := 1; end.");
+		
+		failCode("program prog; var id: integer; procedure proc; begin end; begin id := proc; end.");
+		failCode("program prog; var id: integer; begin id := real; end.");
+	}
+	
+	@Test
 	public void testProcedureDeclaration()
 	{
 		testCode("program prog; procedure proc; begin end; begin end.");
@@ -72,6 +86,16 @@ public class SemanticAnalyserTestOnSynteticAnalyserTest
 		failCode("program prog; procedure proc; begin end begin end.");
 		failCode("program prog; procedure proc (id, id2: integer, real); begin end; begin end.");
 		failCode("program prog; procedure proc (id: integer; id2: real); var id3: integer; procedure proc (id4: integer); var id5: integer; begin end; begin end.");
+	}
+	
+	@Test
+	public void testProcedures()
+	{
+		testCode("program prog; procedure proc; begin end; begin proc; end.");
+		testCode("program prog; procedure proc; begin proc; end; begin proc; end.");
+		
+		failCode("program prog; procedure proc; begin end; begin proc0; end.");
+		failCode("program prog; procedure proc; begin proc0; end; begin proc0; end.");
 	}
 
 	@Test
@@ -128,7 +152,7 @@ public class SemanticAnalyserTestOnSynteticAnalyserTest
 	
 	@Test
 	public void fullTest1()
-	{
+	{	
 		testCode("program teste; {programa exemplo}\n" + 
 				"var\n" + 
 				"	valor1: integer;\n" + 
@@ -147,7 +171,8 @@ public class SemanticAnalyserTestOnSynteticAnalyserTest
 				"    per1 := n1 * (54*33); \n" + 
 				"end; \n" + 
 				"\n" + 
-				"begin\n" + 
+				"begin\n" +
+				"   calcula_percentual;\n" +
 				"	valor1 := 10;\n" + 
 				"	valor2 := valor1 + 5;\n" + 
 				"	NUMERO := 3 + 5 + 7 - 9;\n" + 
@@ -175,6 +200,21 @@ public class SemanticAnalyserTestOnSynteticAnalyserTest
 	
 	@Test
 	public void fullTest2()
+	{
+		testCode("program teste; {programa exemplo}\n" + 
+				"var\n" + 
+				"	valor1: integer;\n" + 
+				"  valor2: real;\n" + 
+				"\n" + 
+				"begin\n" + 
+				"	valor1 := 1;\n" + 
+				"  valor2 := 2.0;\n" + 
+				"  valor2 := valor1 + 1;\n" + 
+				"end.");
+	}
+
+	@Test
+	public void fullTest3()
 	{
 		testCode("program Test2;\n" + 
 				"\n" + 

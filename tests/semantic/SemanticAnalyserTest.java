@@ -17,20 +17,6 @@ public class SemanticAnalyserTest
 	private Symbol s = new Symbol("s", TokenType.Complex, -1);
 	
 	@Test
-	public void test()
-	{
-//		testCode("program id; begin end.");
-//		testCode("program pr; var v1: integer; v2: real; v3: boolean; begin end.");
-//		
-//		failCode("program pr; var v1: integer; v1: real; begin end.");
-//		failCode("program pr; var id: integer; procedure p1; var in: real; begin in := 1; end; begin in := 1; end.");
-//		failCode("progra id; begin end.");
-//		failCode("program begin end.");
-//		failCode("program id begin end.");
-//		failCode("program ; begin end.");
-	}
-	
-	@Test
 	public void testScope()
 	{
 		SemanticAnalyser analyser = new SemanticAnalyser();
@@ -124,6 +110,43 @@ public class SemanticAnalyserTest
 	}
 	
 	@Test
+	public void testProcedures()
+	{
+		SemanticAnalyser analyser = new SemanticAnalyser();
+		
+		Symbol proc1 = new Symbol("proc1", TokenType.Identifier, 0);
+		Symbol proc2 = new Symbol("proc2", TokenType.Identifier, 0);
+		
+		analyser.onScopeBegin(i++, 0);
+		{
+			analyser.onProcedureDeclaration(i++, proc1);
+			
+			try { analyser.onProcedure(i++, proc1); fail(); }
+			catch (SemanticException e) { }
+			
+			analyser.onBlockBegin(i++, s);
+			analyser.onProcedure(i++, proc1);
+			analyser.onBlockEnd(i++, s);
+			
+			analyser.onScopeBegin(i++, 0);
+			{
+				analyser.onProcedureDeclaration(i++, proc2);
+				
+				analyser.onBlockBegin(i++, s);
+				analyser.onProcedure(i++, proc1);
+				analyser.onProcedure(i++, proc2);
+				analyser.onBlockEnd(i++, s);
+				analyser.onScopeEnd(i++, 0);
+			}
+			
+			analyser.onScopeEnd(i++, 0);
+		}
+		
+		try { analyser.onProcedure(i++, proc1); fail(); }
+		catch (SemanticException e) { }
+	}
+	
+	@Test
 	public void testVariables()
 	{
 		SemanticAnalyser analyser = new SemanticAnalyser();
@@ -191,6 +214,69 @@ public class SemanticAnalyserTest
 		catch (SemanticException e) { }
 		
 		try { analyser.onVariable(i++, var0b); fail(); }
+		catch (SemanticException e) { }
+	}
+	
+	@Test
+	public void testProceduresAndVariables()
+	{
+		SemanticAnalyser analyser = new SemanticAnalyser();
+		
+		Symbol proc0 = new Symbol("proc0", TokenType.Identifier, 0);
+		Symbol proc1 = new Symbol("proc1", TokenType.Identifier, 0);
+		Symbol var0 = new Symbol("var0", TokenType.Identifier, 0);
+		Symbol var1 = new Symbol("var1", TokenType.Identifier, 0);
+		
+		analyser.onScopeBegin(i++, 0);
+		{
+			analyser.onProcedureDeclaration(i++, proc0);
+			analyser.onVariableDeclaration(i++, var0);
+			
+			try { analyser.onProcedure(i++, proc0); fail(); }
+			catch (SemanticException e) { }
+			
+			try { analyser.onVariable(i++, var0); fail(); }
+			catch (SemanticException e) { }
+			
+			analyser.onBlockBegin(i++, s);
+			analyser.onProcedure(i++, proc0);
+			analyser.onVariable(i++, var0);
+			
+			try { analyser.onVariable(i++, proc0); fail(); }
+			catch (SemanticException e) { }
+			
+			try { analyser.onProcedure(i++, var0); fail(); }
+			catch (SemanticException e) { }
+			
+			analyser.onBlockEnd(i++, s);
+			
+			analyser.onScopeBegin(i++, 0);
+			{
+				analyser.onProcedureDeclaration(i++, proc1);
+				analyser.onVariableDeclaration(i++, var1);
+				
+				analyser.onBlockBegin(i++, s);
+				analyser.onProcedure(i++, proc1);
+				analyser.onVariable(i++, var1);
+				analyser.onBlockEnd(i++, s);
+				analyser.onScopeEnd(i++, 0);
+			}
+			
+			analyser.onBlockBegin(i++, s);
+			analyser.onProcedure(i++, proc0);
+			analyser.onVariable(i++, var0);
+			
+			try { analyser.onProcedure(i++, proc1); fail(); }
+			catch (SemanticException e) { }
+			
+			try { analyser.onVariable(i++, var1); fail(); }
+			catch (SemanticException e) { }
+			
+			analyser.onBlockEnd(i++, s);
+			analyser.onScopeEnd(i++, 0);
+		}
+		
+		try { analyser.onProcedure(i++, proc1); fail(); }
 		catch (SemanticException e) { }
 	}
 	

@@ -17,14 +17,20 @@ public class Program
 		
 		try
 		{
-			List<Symbol> symbols = LexicalAnalyser.process(
-					Files.readAllLines(Paths.get(args[0]), StandardCharsets.UTF_8));
+			System.out.println(String.format("Reading %s...", args[0]));
+			List<String> code = Files.readAllLines(Paths.get(args[0]), StandardCharsets.UTF_8);
+
+			System.out.println("Running lexical analysis...");
+			List<Symbol> symbols = LexicalAnalyser.process(code);
 			
+			System.out.println("\nToken table:");
 			for (Symbol symbol : symbols)
 				System.out.println(symbol.toFormatedString());
 	
+			System.out.println("\nRunning syntactic and semantic analysis...");
 			new SyntacticAnalyser(symbols, new SemanticAnalyser()).analyse();
-			System.out.println("Success");
+
+			System.out.println("Success!");
 		}
 		catch (Exception e) {
 			System.out.println(e.getMessage());

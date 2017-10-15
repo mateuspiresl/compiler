@@ -134,11 +134,16 @@ public class SyntacticAnalyser
 		if (!get(i++).equals("procedure"))
 			return i - 1;
 		
-		if (!has(i) || getType(i++) != TokenType.Identifier)
-			throw new SyntacticException("Missing procedure identifier", previous(i - 1));
+		if (!has(i) || getType(i) != TokenType.Identifier)
+			throw new SyntacticException("Missing procedure identifier", previous(i));
 		
-		if (this.listener != null) this.listener.onScopeBegin(i - 1, this.symbols.get(i - 1).getAt());
+		if (this.listener != null)
+		{
+			this.listener.onProcedureDeclaration(i, this.symbols.get(i));
+			this.listener.onScopeBegin(i, this.symbols.get(i).getAt());
+		}
 		
+		i = i + 1;
 		i = matchParameters(i);
 		
 		if (!has(i) || !get(i++).equals(";"))
@@ -192,12 +197,12 @@ public class SyntacticAnalyser
 		
 		i = matchOptionalCommands(i);
 		
-		if (!has(i) || !get(i++).equals("end"))
-			throw new SyntacticException("Missing 'end' command", previous(i));
+		if (!has(i) || !get(i).equals("end"))
+			throw new SyntacticException("Missing 'end' command", this.symbols.get(i));
 		
-		if (this.listener != null) this.listener.onBlockEnd(i - 1, this.symbols.get(i - 1));
+		if (this.listener != null) this.listener.onBlockEnd(i, this.symbols.get(i));
 		
-		return i;
+		return i + 1;
 	}
 	
 	private int matchOptionalCommands(int i)
@@ -221,36 +226,39 @@ public class SyntacticAnalyser
 	
 	private int matchCommand(int i)
 	{
-		// Assignment
-		// variable := expression
-		try {
+		Log.d(1, "On: " + this.symbols.get(i));
+		
+		if (getType(i) == TokenType.Identifier)
+		{
+			// Assignment
+			// variable := expression
 			Log.d(1, "Command assignment BEGIN (" + (i - 1) + ")");
 			if (this.listener != null) this.listener.onExpressionBegin(i - 1, this.symbols.get(i - 1));
 			
 			int inner = matchVariable(i);
 			
-			if (!has(inner) || getType(inner) != TokenType.AssignmentCommand)
-				throw new SyntacticException("Missing assignment command", previous(inner));
-			
-			if (this.listener != null) this.listener.onOperator(inner, this.symbols.get(inner));
+			try {
+				if (!has(inner) || getType(inner) != TokenType.AssignmentCommand)
+					throw new SyntacticException("Missing assignment command", previous(inner));
+				
+				if (this.listener != null)
+				{
+					this.listener.onVariable(i, this.symbols.get(i));
+					this.listener.onOperator(inner, this.symbols.get(inner));
+				}
+			}
+			catch (Exception e) {
+				if (this.listener != null) this.listener.matchIndex(i);
+				
+				return matchProcedureCall(i);
+			}
 			
 			inner = matchExpression(inner + 1);
 			
 			Log.d(1, "Command assignment END (" + inner + ")");
-			if (this.listener != null) this.listener.onExpressionEnd(inner, this.symbols.get(inner));
+			if (this.listener != null) this.listener.onExpressionEnd(inner,this.symbols.get(inner));
 			
 			return inner;
-		}
-		catch (SyntacticException e) {
-			if (this.listener != null) this.listener.matchIndex(i);
-		}
-		
-		// Procedure call
-		try {
-			return matchProcedureCall(i);
-		}
-		catch (SyntacticException e) {
-			if (this.listener != null) this.listener.matchIndex(i);
 		}
 		
 		// Inner compound command
@@ -316,6 +324,8 @@ public class SyntacticAnalyser
 			if (this.listener != null) this.listener.matchIndex(i);
 		}
 		
+		Log.d(1, "Any: " + this.symbols.get(i));
+		
 		return i;
 	}
 	
@@ -323,8 +333,6 @@ public class SyntacticAnalyser
 	{
 		if (!has(i) || getType(i) != TokenType.Identifier)
 			throw new SyntacticException("Missing identifier", previous(i));
-		
-		if (this.listener != null) this.listener.onVariable(i, this.symbols.get(i));
 		
 		return i + 1;
 	}
@@ -355,6 +363,8 @@ public class SyntacticAnalyser
 	{
 		try {
 			i = matchVariable(i);
+			
+			if (this.listener != null) this.listener.onProcedure(i - 1, this.symbols.get(i - 1));
 			
 			if (get(i).equals("("))
 			{
@@ -438,7 +448,11 @@ public class SyntacticAnalyser
 		
 		if (getType(i) == TokenType.Identifier)
 		{
-			return matchVariable(i);
+			int inner = matchVariable(i);
+			
+			if (this.listener != null) this.listener.onVariable(i, this.symbols.get(i));
+			
+			return inner;
 		}
 		else if (get(i).equals("("))
 		{

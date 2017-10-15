@@ -1,10 +1,13 @@
 package lexical;
 
+import utils.Log;
+
 /**
  * Represents all token types.
  */
 public enum TokenType {
 	KeyWord("Key-word"),
+	Procedure("Procedure"),
 	Identifier("Identifier"),
 	Integer("Integer"),
 	Real("Real"),
@@ -17,7 +20,6 @@ public enum TokenType {
 	MultiplicativeOperator("Multiplicative operator"),
 	LogicalOperator("Logical operator");
 
-	private static final boolean DEBUG = true;
 	private final String asString;
 
 	private TokenType(String asString) {
@@ -27,7 +29,7 @@ public enum TokenType {
 	@Override
 	public String toString()
 	{
-		if (DEBUG)
+		if (Log.DEBUG)
 		{
 			String[] words = this.asString.split(" ");
 			StringBuilder builder = new StringBuilder();
