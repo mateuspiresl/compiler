@@ -119,7 +119,6 @@ public class SemanticAnalyser implements SyntacticListener
 	@Override
 	public void onScopeBegin(int i, int line)
 	{
-		matchIndexAfter(i);
 		pushToken(i, SCOPE);
 		this.scopeCount++;
 	}
@@ -127,8 +126,6 @@ public class SemanticAnalyser implements SyntacticListener
 	@Override
 	public void onScopeEnd(int i, int line)
 	{
-		matchIndexAfter(i);
-		
 		if (this.blockCount > 0)
 			throw new SemanticException("Closing a scope with openned blocks", line);
 		
@@ -142,7 +139,6 @@ public class SemanticAnalyser implements SyntacticListener
 	@Override
 	public void onBlockBegin(int i, Symbol symbol)
 	{
-		matchIndex(i);
 		pushToken(i, BLOCK);
 		this.blockCount++;
 	}
@@ -150,8 +146,6 @@ public class SemanticAnalyser implements SyntacticListener
 	@Override
 	public void onBlockEnd(int i, Symbol symbol)
 	{
-		matchIndex(i);
-		
 		if (this.blockCount == 0)
 			throw new SemanticException("Closing a block but any was openned", symbol);
 		
@@ -165,8 +159,6 @@ public class SemanticAnalyser implements SyntacticListener
 	@Override
 	public void onProcedureDeclaration(int i, Symbol symbol)
 	{
-		matchIndex(i);
-		
 		if (this.blockCount > 0)
 			throw new SemanticException("Declaring the procedure inside a block", symbol); 
 		
@@ -192,8 +184,6 @@ public class SemanticAnalyser implements SyntacticListener
 	@Override
 	public void onVariableDeclaration(int i, Symbol symbol)
 	{
-		matchIndex(i);
-		
 		if (this.blockCount > 0)
 			throw new SemanticException("Declaring variable inside a block", symbol); 
 		
@@ -217,8 +207,6 @@ public class SemanticAnalyser implements SyntacticListener
 	@Override
 	public void onTypeDefinition(int i, Symbol symbol)
 	{
-		matchIndex(i);
-		
 		TokenType type = parseType(symbol.getToken());
 		Iterator<IndexedValue<String>> it = this.tokenStack.iterator();
 		
