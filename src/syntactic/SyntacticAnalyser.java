@@ -243,20 +243,15 @@ public class SyntacticAnalyser
 			
 			int inner = matchVariable(i);
 			
-			try {
-				if (!has(inner) || getType(inner) != TokenType.AssignmentCommand)
-					throw new SyntacticException("Missing assignment command", previous(inner));
-				
-				if (this.listener != null)
-				{
-					this.listener.onVariable(i, this.symbols.get(i));
-					this.listener.onOperator(inner, this.symbols.get(inner));
-				}
-			}
-			catch (Exception e) {
-				if (this.listener != null) this.listener.matchIndex(i);
-				
+			if (!has(inner)) throw new SyntacticException("Missing assignment command", previous(inner));
+			
+			if (getType(inner) != TokenType.AssignmentCommand)
 				return matchProcedureCall(i);
+			
+			if (this.listener != null)
+			{
+				this.listener.onVariable(i, this.symbols.get(i));
+				this.listener.onOperator(inner, this.symbols.get(inner));
 			}
 			
 			inner = matchExpression(inner + 1);
