@@ -152,7 +152,7 @@ public class SemanticAnalyserTestOnSynteticAnalyserTest
 	
 	@Test
 	public void fullTest1()
-	{	
+	{
 		testCode("program teste; {programa exemplo}\n" + 
 				"var\n" + 
 				"	valor1: integer;\n" + 
@@ -172,7 +172,7 @@ public class SemanticAnalyserTestOnSynteticAnalyserTest
 				"end; \n" + 
 				"\n" + 
 				"begin\n" +
-				"   calcula_percentual;\n" +
+				"   calcula_percentual(valor2, 2);\n" +
 				"	valor1 := 10;\n" + 
 				"	valor2 := valor1 + 5;\n" + 
 				"	NUMERO := 3 + 5 + 7 - 9;\n" + 

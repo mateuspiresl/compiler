@@ -9,13 +9,20 @@ public interface SyntacticListener
 	public void onScopeEnd(int i, int line);
 	public void onBlockBegin(int i, Symbol symbol);
 	public void onBlockEnd(int i, Symbol symbol);
-	public void onProcedureDeclaration(int i, Symbol symbol);
 	public void onVariableDeclaration(int i, Symbol symbol);
 	public void onTypeDefinition(int i, Symbol symbol);
-	public void onProcedure(int i, Symbol symbol);
 	public void onVariable(int i, Symbol symbol);
 	public void onValue(int i, Symbol symbol);
 	public void onOperator(int i, Symbol symbol);
 	public void onExpressionBegin(int i, Symbol symbol);
 	public void onExpressionEnd(int i, Symbol symbol);
+	
+	// Procedures
+	public void onProcedureDeclaration(int i, Symbol symbol);
+	public void onProcedureParametersDeclarationBegin(int i, Symbol symbol);
+	public void onProcedureParametersDeclarationEnd(int i, Symbol symbol);
+	public void onProcedure(int i, Symbol symbol);
+	public void onProcedureArgumentsBegin(int i, Symbol symbol);
+	public void onProcedureArgumentsEnd(int i, Symbol symbol);
+	public void onProcedureArgument(int i, Symbol symbol);
 }

@@ -18,12 +18,19 @@ public class SemanticAnalyser implements SyntacticListener
 	
 	private LinkedList<IndexedValue<String>> tokenStack = new LinkedList<>();
 	private LinkedList<IndexedValue<TokenType>> expressionStack = new LinkedList<>();
+	
 	private Map<String, TokenType> identifiersTypes = new HashMap<>();
+	private Map<String, TokenType[]> proceduresParameters = new HashMap<>();
 	
 	private int scopeCount = 0;
 	private int blockCount = 0;
 	private int untypedVariables = 0;
 
+	private String lastProcedureKey;
+	private TokenType lastExpressionType;
+	private int numberOfProcedureParameters;
+	private int procedureArgumentsCount;
+	
 	private String getIdentifierKey(String name, int scope) {
 		return String.format("%s+%s", scope, name);
 	}
@@ -48,10 +55,15 @@ public class SemanticAnalyser implements SyntacticListener
 		}
 		else
 		{
-			String variableKey = getIdentifierKey(token);
+			String key = getIdentifierKey(token);
 			
-			if (this.identifiersTypes.containsKey(variableKey))
-				this.identifiersTypes.remove(variableKey);
+			if (this.identifiersTypes.containsKey(key))
+			{
+				if (this.identifiersTypes.get(key) == TokenType.Procedure)
+					this.proceduresParameters.remove(key);
+				
+				this.identifiersTypes.remove(key);
+			}
 		}
 		
 		return token;
@@ -169,9 +181,12 @@ public class SemanticAnalyser implements SyntacticListener
 			else if (token.equals(SCOPE))
 				break;
 		}
-				
+		
+		Log.d(2, "Procedure " + symbol.getToken());
 		pushToken(i, symbol.getToken());
-		this.identifiersTypes.put(getIdentifierKey(symbol.getToken()), TokenType.Procedure);
+		
+		this.lastProcedureKey = getIdentifierKey(symbol.getToken());
+		this.identifiersTypes.put(this.lastProcedureKey, TokenType.Procedure);
 	}
 	
 	@Override
@@ -195,7 +210,8 @@ public class SemanticAnalyser implements SyntacticListener
 		}
 		
 		pushToken(i, symbol.getToken());
-		this.untypedVariables++;
+		this.untypedVariables++; 
+		this.numberOfProcedureParameters++;
 	}
 	
 	@Override
@@ -207,7 +223,12 @@ public class SemanticAnalyser implements SyntacticListener
 		Iterator<IndexedValue<String>> it = this.tokenStack.iterator();
 		
 		while (this.untypedVariables-- > 0)
-			this.identifiersTypes.put(getIdentifierKey(it.next().value), type);
+		{
+			String key = getIdentifierKey(it.next().value);
+			
+			this.identifiersTypes.put(key, type);
+			Log.d(2, "Variable " + key + " type " + type);
+		}
 		
 		this.untypedVariables = 0;
 	}
@@ -232,11 +253,13 @@ public class SemanticAnalyser implements SyntacticListener
 			}
 			else if (token.equals(symbol.getToken()))
 			{
-				TokenType type = this.identifiersTypes.get(getIdentifierKey(symbol.getToken(), scope));
+				String key = getIdentifierKey(symbol.getToken(), scope);
+				Log.d(2, "For procedure " + symbol.getToken() + " found identifier key " + key);
 				
-				if (type != TokenType.Procedure)
+				if (this.identifiersTypes.get(key) != TokenType.Procedure)
 					throw new SemanticException("Using variable as procedure", symbol);
 				
+				this.lastProcedureKey = key;
 				return;
 			}
 		}
@@ -389,6 +412,8 @@ public class SemanticAnalyser implements SyntacticListener
 		
 		if (!this.expressionStack.isEmpty())
 			pushExpression(this.expressionStack.peek().index, current);
+		
+		this.lastExpressionType = current;
 	}
 	
 	private void printExpressions(int tabs)
@@ -412,5 +437,82 @@ public class SemanticAnalyser implements SyntacticListener
 		message.append("(").append(this.expressionStack.peek().index).append(")");
 		
 		Log.d(tabs, message.toString());
+	}
+
+	@Override
+	public void onProcedureParametersDeclarationBegin(int i, Symbol symbol)
+	{
+		matchIndex(i);
+		this.numberOfProcedureParameters = 0;
+	}
+
+	@Override
+	public void onProcedureParametersDeclarationEnd(int i, Symbol symbol)
+	{
+		matchIndex(i);
+		
+		TokenType[] parameters = new TokenType[this.numberOfProcedureParameters];
+		Iterator<IndexedValue<String>> it = this.tokenStack.iterator();
+		
+		while (this.numberOfProcedureParameters-- > 0)
+		{
+			String key = getIdentifierKey(it.next().value);
+			parameters[this.numberOfProcedureParameters] = this.identifiersTypes.get(key);
+		}
+		
+		this.proceduresParameters.put(this.lastProcedureKey, parameters);
+		
+		if (Log.DEBUG)
+		{
+			StringBuilder message = new StringBuilder()
+				.append("Procedure ")
+				.append(this.lastProcedureKey)
+				.append(" parameters: ");
+			
+			for (TokenType type : parameters)
+				message.append(type + " ");
+			
+			Log.d(2, message.toString());
+		}
+	}
+	
+	@Override
+	public void onProcedureArgumentsBegin(int i, Symbol symbol)
+	{
+		matchIndex(i);
+		this.procedureArgumentsCount = 0;
+	}
+
+	@Override
+	public void onProcedureArgumentsEnd(int i, Symbol symbol)
+	{
+		matchIndex(i);
+		
+		int expectedCount = this.proceduresParameters.get(this.lastProcedureKey).length;
+		
+		if (expectedCount != this.procedureArgumentsCount)
+			throw new SemanticException("Invalid number of arguments", symbol);
+	}
+
+	@Override
+	public void onProcedureArgument(int i, Symbol symbol)
+	{
+		matchIndex(i);
+		
+		Log.d(2, "Procedure " + this.lastProcedureKey + " count " + this.procedureArgumentsCount
+				+ " expression " + this.lastExpressionType);
+		
+		TokenType[] parameters = this.proceduresParameters.get(this.lastProcedureKey);
+		
+		if (this.procedureArgumentsCount == parameters.length)
+			throw new SemanticException("Invalid number of arguments", symbol);
+		
+		TokenType expectedType = parameters[this.procedureArgumentsCount++]; 
+		
+		Log.d(2, "Comparing types: expected " + expectedType + ", found " + this.lastExpressionType);
+		
+		if ((expectedType != TokenType.Real || this.lastExpressionType != TokenType.Integer)
+				&& expectedType != this.lastExpressionType)
+			throw new SemanticException("Invalid argument type", symbol);
 	}
 }

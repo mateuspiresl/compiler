@@ -88,7 +88,7 @@ public class SyntacticAnalyser
 			if (!has(i) || !TYPES.contains(get(i++)))
 				throw new SyntacticException("Invalid or missing type", previous(i - 1));
 			
-			if (this.listener != null) this.listener.onTypeDefinition(i, this.symbols.get(i - 1));
+			if (this.listener != null) this.listener.onTypeDefinition(i - 1, this.symbols.get(i - 1));
 			
 			if (!has(i) || !get(i++).equals(";"))
 				throw new SyntacticException("Missing ';'", previous(i - 1));
@@ -144,7 +144,12 @@ public class SyntacticAnalyser
 		}
 		
 		i = i + 1;
+		
+		if (this.listener != null) this.listener.onProcedureParametersDeclarationBegin(i, this.symbols.get(i));
+
 		i = matchParameters(i);
+		
+		if (this.listener != null) this.listener.onProcedureParametersDeclarationEnd(i, this.symbols.get(i));
 		
 		if (!has(i) || !get(i++).equals(";"))
 			throw new SyntacticException("Missing ';'", previous(i - 1));
@@ -160,32 +165,35 @@ public class SyntacticAnalyser
 	
 	private int matchParameters(int i)
 	{
-		if (get(i++).equals("("))
+		if (get(i).equals("("))
 		{
-			i = matchParametersList(i);
+			i = matchParametersList(i + 1);
 			
 			if (!has(i) || !get(i++).equals(")"))
-				throw new SyntacticException("Missing ')'", previous(i));
+				throw new SyntacticException("Missing ')'", this.symbols.get(i - 1));
 			
 			return i;
 		}
-		else return i - 1;
+		else return i;
 	}
 	
 	private int matchParametersList(int i)
 	{
-		i = matchIdentifiersList(i);
+		int inner = matchIdentifiersList(i);
+		if (i == inner) return i;
 		
-		if (!has(i) || !get(i++).equals(":"))
-			throw new SyntacticException("Missing ':'", previous(i - 1));
+		if (!has(inner) || !get(inner++).equals(":"))
+			throw new SyntacticException("Missing ':'", previous(inner - 1));
 		
-		if (!has(i) || !TYPES.contains(get(i++)))
-			throw new SyntacticException("Invalid or missing type", previous(i - 1));
+		if (!has(inner) || !TYPES.contains(get(inner++)))
+			throw new SyntacticException("Invalid or missing type", this.symbols.get(inner - 1));
 		
-		if (has(i) && get(i).equals(";"))
-			i = matchParametersList(i + 1);
+		if (this.listener != null) this.listener.onTypeDefinition(inner - 1, this.symbols.get(inner - 1));
 		
-		return i;
+		if (has(inner) && get(inner).equals(";"))
+			inner = matchParametersList(inner + 1);
+		
+		return inner;
 	}
 	
 	private int matchCompoundCommand(int i)
@@ -226,8 +234,6 @@ public class SyntacticAnalyser
 	
 	private int matchCommand(int i)
 	{
-		Log.d(1, "On: " + this.symbols.get(i));
-		
 		if (getType(i) == TokenType.Identifier)
 		{
 			// Assignment
@@ -324,8 +330,6 @@ public class SyntacticAnalyser
 			if (this.listener != null) this.listener.matchIndex(i);
 		}
 		
-		Log.d(1, "Any: " + this.symbols.get(i));
-		
 		return i;
 	}
 	
@@ -364,19 +368,34 @@ public class SyntacticAnalyser
 		try {
 			i = matchVariable(i);
 			
-			if (this.listener != null) this.listener.onProcedure(i - 1, this.symbols.get(i - 1));
+			if (this.listener != null)
+			{
+				this.listener.onProcedure(i - 1, this.symbols.get(i - 1));
+				
+				Log.d(1, "Procedure parameters BEGIN (" + (i) + ")");
+				this.listener.onProcedureArgumentsBegin(i, this.symbols.get(i));
+			}
 			
 			if (get(i).equals("("))
 			{
-				i = matchExpressionList(i + 1);
-				
-				if (!has(i) || !get(i++).equals(")"))
-					throw new SyntacticException("Missing delimitier ')' from procedure call", previous(i - 1));
+				if (get(i + 1).equals(")")) {
+					i += 2;
+				}
+				else {
+					i = matchExpressionList(i + 1);
+					
+					if (!has(i) || !get(i++).equals(")"))
+						throw new SyntacticException("Missing delimitier ')' from procedure call", previous(i - 1));
+				}
 			}
+			
+			Log.d(1, "Procedure parameters END (" + (i) + ")");
+			if (this.listener != null) this.listener.onProcedureArgumentsEnd(i, this.symbols.get(i));
 			
 			return i;
 		}
 		catch (SyntacticException e) {
+			e.printStackTrace();
 			throw new SyntacticException("Missing procedure call identifier", previous(i));
 		}
 	}
@@ -488,7 +507,17 @@ public class SyntacticAnalyser
 	
 	private int matchExpressionList(int i)
 	{
+		Log.d(1, "Parameter expression BEGIN (" + (i - 1) + ")");
+		if (this.listener != null) this.listener.onExpressionBegin(i - 1, this.symbols.get(i - 1));
+		
 		i = matchExpression(i);
+		
+		if (this.listener != null)
+		{
+			Log.d(1, "Parameter expression END (" + i + ")");
+			this.listener.onExpressionEnd(i, this.symbols.get(i));
+			this.listener.onProcedureArgument(i, this.symbols.get(i));
+		}
 		
 		if (has(i) && get(i).equals(","))
 			return matchExpressionList(i + 1);
