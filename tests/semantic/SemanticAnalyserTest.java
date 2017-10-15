@@ -362,11 +362,13 @@ public class SemanticAnalyserTest
 		Symbol proc1 = new Symbol("proc1", TokenType.Identifier, 0);
 		Symbol var0 = new Symbol("var0", TokenType.Identifier, 0);
 		Symbol var1 = new Symbol("var1", TokenType.Identifier, 0);
+		Symbol type = new Symbol("integer", TokenType.KeyWord, 0);
 		
 		analyser.onScopeBegin(i++, 0);
 		{
 			analyser.onProcedureDeclaration(i++, proc0);
 			analyser.onVariableDeclaration(i++, var0);
+			analyser.onTypeDefinition(i++, type);
 			
 			try { analyser.onProcedure(i++, proc0); fail(); }
 			catch (SemanticException e) { }
@@ -390,6 +392,7 @@ public class SemanticAnalyserTest
 			{
 				analyser.onProcedureDeclaration(i++, proc1);
 				analyser.onVariableDeclaration(i++, var1);
+				analyser.onTypeDefinition(i++, type);
 				
 				analyser.onBlockBegin(i++, s);
 				analyser.onProcedure(i++, proc1);
