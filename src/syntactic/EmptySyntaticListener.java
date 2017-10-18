@@ -23,18 +23,6 @@ public class EmptySyntaticListener implements SyntacticListener {
 	}
 
 	@Override
-	public void onBlockBegin(int i, Symbol symbol) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public void onBlockEnd(int i, Symbol symbol) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
 	public void onVariableDeclaration(int i, Symbol symbol) {
 		// TODO Auto-generated method stub
 

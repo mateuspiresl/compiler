@@ -210,14 +210,10 @@ public class SyntacticAnalyser
 		if (!isToken(i, "begin"))
 			throw new SyntacticException("Missing 'begin' command", get(i));
 		
-		this.listener.onBlockBegin(i, get(i));
-		
 		i = matchCommandList(i + 1);
 		
 		if (!isToken(i, "end"))
 			throw new SyntacticException("Missing 'end' command", get(i));
-		
-		if (this.listener != null) this.listener.onBlockEnd(i, get(i));
 		
 		return i + 1;
 	}

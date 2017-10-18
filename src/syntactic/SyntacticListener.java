@@ -10,10 +10,6 @@ public interface SyntacticListener
 	public void onScopeBegin(int i, int line);
 	public void onScopeEnd(int i, int line);
 	
-	// Block
-	public void onBlockBegin(int i, Symbol symbol);
-	public void onBlockEnd(int i, Symbol symbol);
-	
 	// Variables
 	public void onVariableDeclaration(int i, Symbol symbol);
 	public void onTypeDefinition(int i, Symbol symbol);

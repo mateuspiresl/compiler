@@ -12,37 +12,122 @@ import utils.Log;
 
 public class SemanticAnalyser implements SyntacticListener
 {
-	private static final boolean DEBUG = true;
+	/**
+	 * Marks a scope beginning in the token stack.
+	 */
 	private static final String SCOPE = "$";
-	private static final String BLOCK = "#";
 	
+	/**
+	 * The token stack.
+	 * Stores the program identifier, procedures identifiers,
+	 * variables identifiers and marks scopes. 
+	 */
 	private LinkedList<IndexedValue<String>> tokenStack = new LinkedList<>();
+	/**
+	 * The expression stack.
+	 * Stores types and operators.
+	 */
 	private LinkedList<IndexedValue<TokenType>> expressionStack = new LinkedList<>();
-	
+	/**
+	 * The identifiers types.
+	 * Stores the type of an identifier as identifier key to type.
+	 */
 	private Map<String, TokenType> identifiersTypes = new HashMap<>();
+	/**
+	 * The procedures parameters.
+	 * Stores the list of types of parameters for each procedure
+	 * as procedure identifier key to list of types.
+	 */
 	private Map<String, TokenType[]> proceduresParameters = new HashMap<>();
 	
+	/**
+	 * Indicates the depth of the scopes.
+	 * Used to generate the identifier key.
+	 */
 	private int scopeCount = 0;
-	private int blockCount = 0;
+	/**
+	 * Counts the number of variables declared but with no type defined.
+	 * Used by {@link SemanticAnalyser#onTypeDefinition(int, Symbol)} as
+	 * the number of variables from the top of the stack to define its
+	 * types.
+	 */
 	private int untypedVariables = 0;
 
+	/**
+	 * Indicates the last procedure declared or used.
+	 * Used to create the list of parameters types and to validate the
+	 * types of the arguments.
+	 */
 	private String lastProcedureKey;
+	/**
+	 * Indicates the resultant type of the last expression.
+	 * Used to validate conditions of control statements and parameters
+	 * arguments.
+	 */
 	private TokenType lastExpressionType;
-	private int numberOfProcedureParameters;
+	/**
+	 * Counts the number of procedure parameters been declared.
+	 * As any procedure parameter and variable are declared in the same
+	 * way, this counter is needed to ensure the number of declared
+	 * variables that are actually parameters of a procedure.
+	 */
+	private int procedureParametersCount;
+	/**
+	 * Counts the number of procedure arguments.
+	 * Used on the validation of procedure arguments.
+	 */
 	private int procedureArgumentsCount;
 	
+	
+	/**
+	 * Generates an identifier key using the scope depth.
+	 * An identifier key is the concatenation of the scope depth, the
+	 * character '+' and the identifier, as depth+identifier.
+	 * It's needed to make the map of identifiers support variables of
+	 * equal names but different scopes depth.
+	 * @param name The identifier.
+	 * @param scope The scope depth.
+	 * @return The generated key.
+	 */
 	private String getIdentifierKey(String name, int scope) {
 		return String.format("%s+%s", scope, name);
 	}
 	
+	/**
+	 * Generates an identifier key for an identifier declared in the
+	 * current scope.
+	 * @param name The identifier.
+	 * @return The generated key.
+	 */
 	private String getIdentifierKey(String name) {
 		return getIdentifierKey(name, this.scopeCount);
 	}
 	
+	/**
+	 * Pushes a token to the stack.
+	 * The index 'i' of the token is used to ensure the location of
+	 * validation on the lexical table.
+	 * An invalid token can be pushed to the stack when the validation
+	 * is directed to a wrong path. Later, when it changes its path,
+	 * it has to go back to an previous index, what makes this useful
+	 * to remove the invalid tokens, which are the ones stored with
+	 * indexes ahead. For this work, the methods
+	 * {@link #matchIndex(int)} and {@link #matchIndexAfter(int)}
+	 * are used.
+	 * @param token The token to store.
+	 * @param i The token index.
+	 */
 	private void pushToken(int i, String token) {
 		this.tokenStack.push(new IndexedValue<String>(i, token));
 	}
 	
+	/**
+	 * Pops a token from the stack.
+	 * It controls the scope count, updating when any are removed,
+	 * and removes identifiers types, in case of identifiers, and also
+	 * procedure parameters types, when it'a procedure.
+	 * @return The removed token.
+	 */
 	private String popToken()
 	{
 		String token = this.tokenStack.pop().value;
@@ -50,18 +135,17 @@ public class SemanticAnalyser implements SyntacticListener
 		if (token.equals(SCOPE)) {
 			this.scopeCount--;
 		}
-		else if (token.equals(BLOCK)) {
-			this.blockCount--;
-		}
 		else
 		{
 			String key = getIdentifierKey(token);
 			
 			if (this.identifiersTypes.containsKey(key))
 			{
+				// In case of a procedure, removes its parameters types
 				if (this.identifiersTypes.get(key) == TokenType.Procedure)
 					this.proceduresParameters.remove(key);
 				
+				// In case of an identifier, removes its type
 				this.identifiersTypes.remove(key);
 			}
 		}
@@ -69,55 +153,67 @@ public class SemanticAnalyser implements SyntacticListener
 		return token;
 	}
 	
+	/**
+	 * Pushes a type to the expression stack.
+	 * The index i has the same utility as the
+	 * {@link SemanticAnalyser#pushToken(int, String)}.
+	 * @param i The type index.
+	 * @param type The type.
+	 */
 	private void pushExpression(int i, TokenType type) {
 		this.expressionStack.push(new IndexedValue<TokenType>(i, type));
 		printExpressions(3);
 	}
 	
+	/**
+	 * Parses a token to it's real type. 
+	 * @param token The token to parse.
+	 * @return The type.
+	 */
 	private TokenType parseType(String token)
 	{
 		switch (token)
 		{
-		case "integer": return TokenType.Integer;
-		case "real": 	return TokenType.Real;
-		case "boolean": return TokenType.Boolean;
-		case "program": return TokenType.Program;
-		case "procedure": return TokenType.Procedure;
-		default: 		return null;
+		case "integer": 	return TokenType.Integer;
+		case "real": 		return TokenType.Real;
+		case "boolean": 	return TokenType.Boolean;
+		case "program": 	return TokenType.Program;
+		case "procedure": 	return TokenType.Procedure;
+		default: 			return null;
 		}
 	}
 	
+	/**
+	 * Removes every token that is registered with an index greater than
+	 * the given one.
+	 * @param i The index to keep in the stack.
+	 */
 	private void matchIndexAfter(int i)
 	{
-		boolean changed = false;
+		int expressionStackSize = this.expressionStack.size();
 		
 		while (!this.tokenStack.isEmpty() && this.tokenStack.peek().index > i) popToken();
 		while (!this.expressionStack.isEmpty() && this.expressionStack.peek().index > i)
 		{
 			IndexedValue<TokenType> type = this.expressionStack.pop();
 			Log.d(3, "Pop " + type.value + ", its index " + type.index + " > " + i);
-			changed = true;
 		}
 		
-		if (changed) printExpressions(4);
+		if (expressionStackSize != this.expressionStack.size()) printExpressions(4);
 	}
 	
+	/**
+	 * Removes every token that is registered with an index greater or equal
+	 * to the given one.
+	 */
 	@Override
-	public void matchIndex(int i)
-	{
-		boolean changed = false;
-		
-		while (!this.tokenStack.isEmpty() && this.tokenStack.peek().index >= i) popToken();
-		while (!this.expressionStack.isEmpty() && this.expressionStack.peek().index >= i)
-		{
-			IndexedValue<TokenType> type = this.expressionStack.pop();
-			Log.d(3, "Pop " + type.value + ", its index " + type.index + " >= " + i);
-			changed = true;
-		}
-		
-		if (changed) printExpressions(4);
+	public void matchIndex(int i) {
+		matchIndexAfter(i - 1);
 	}
 	
+	/**
+	 * Register a scope beginning.
+	 */
 	@Override
 	public void onScopeBegin(int i, int line)
 	{
@@ -125,12 +221,13 @@ public class SemanticAnalyser implements SyntacticListener
 		this.scopeCount++;
 	}
 
+	/**
+	 * Registers a scope end.
+	 * @throws SemanticException if any scope was opened.
+	 */
 	@Override
 	public void onScopeEnd(int i, int line)
 	{
-		if (this.blockCount > 0)
-			throw new SemanticException("Closing a scope with openned blocks", line);
-		
 		while (!this.tokenStack.isEmpty())
 			if (popToken().equals(SCOPE))
 				return;
@@ -138,32 +235,14 @@ public class SemanticAnalyser implements SyntacticListener
 		throw new SemanticException("Closing a scope that wasn't openned", line);
 	}
 	
-	@Override
-	public void onBlockBegin(int i, Symbol symbol)
-	{
-		pushToken(i, BLOCK);
-		this.blockCount++;
-	}
-
-	@Override
-	public void onBlockEnd(int i, Symbol symbol)
-	{
-		if (this.blockCount == 0)
-			throw new SemanticException("Closing a block but any was openned", symbol);
-		
-		while (!this.tokenStack.isEmpty())
-			if (popToken().equals(BLOCK))
-				return;
-		
-		throw new SemanticException("Closing a block that wasn't openned", symbol);
-	}
-	
+	/**
+	 * Registers a procedure identifier.
+	 * @throws SemanticException if an identifier with the same name is already
+	 * 		registered in the current scope.
+	 */
 	@Override
 	public void onProcedureDeclaration(int i, Symbol symbol)
 	{
-		if (this.blockCount > 0)
-			throw new SemanticException("Declaring the procedure inside a block", symbol); 
-		
 		Iterator<IndexedValue<String>> it = this.tokenStack.iterator();
 		while (it.hasNext())
 		{
@@ -186,9 +265,6 @@ public class SemanticAnalyser implements SyntacticListener
 	@Override
 	public void onVariableDeclaration(int i, Symbol symbol)
 	{
-		if (this.blockCount > 0)
-			throw new SemanticException("Declaring variable inside a block", symbol); 
-		
 		Iterator<IndexedValue<String>> it = this.tokenStack.iterator();
 		while (it.hasNext())
 		{
@@ -203,7 +279,7 @@ public class SemanticAnalyser implements SyntacticListener
 		
 		pushToken(i, symbol.getToken());
 		this.untypedVariables++; 
-		this.numberOfProcedureParameters++;
+		this.procedureParametersCount++;
 	}
 	
 	@Override
@@ -227,9 +303,6 @@ public class SemanticAnalyser implements SyntacticListener
 	public void onProcedure(int i, Symbol symbol)
 	{
 		matchIndex(i);
-		
-		if (this.blockCount == 0)
-			throw new SemanticException("Using procedure outside a block", symbol); 
 		
 		Iterator<IndexedValue<String>> it = this.tokenStack.iterator();
 		int scope = this.scopeCount; 
@@ -261,9 +334,6 @@ public class SemanticAnalyser implements SyntacticListener
 	public void onVariable(int i, Symbol symbol)
 	{
 		matchIndex(i);
-		
-		if (this.blockCount == 0)
-			throw new SemanticException("Using variable outside a block", symbol); 
 		
 		Iterator<IndexedValue<String>> it = this.tokenStack.iterator();
 		int scope = this.scopeCount; 
@@ -381,21 +451,20 @@ public class SemanticAnalyser implements SyntacticListener
 					if (base != TokenType.Boolean || current != TokenType.Boolean)
 						throw new SemanticException("Incompatible types for logical operation", symbol);
 				}
-				else {
-					// No other operator supports the Boolean type
-					if (base == TokenType.Boolean || current == TokenType.Boolean)
-						throw new SemanticException("Incompatible types in the same operation", symbol);
+				
+				// No other operator supports the Boolean type
+				else if (base == TokenType.Boolean || current == TokenType.Boolean)
+					throw new SemanticException("Incompatible types in the same operation", symbol);
 					
-					// The result of a relational operation is a boolean value
-					else if (operator == TokenType.RelationalOperator)
-						current = TokenType.Boolean;
-					
-					// Additive or multiplicative operation
-					// If base is Real, current should be Real, but if base is Integer,
-					// current should be kept as is (Real or Integer)
-					else if (base == TokenType.Real)
-						current = TokenType.Real;
-				}
+				// The result of a relational operation is a boolean value
+				else if (operator == TokenType.RelationalOperator)
+					current = TokenType.Boolean;
+				
+				// Additive or multiplicative operation
+				// If base is Real, current should be Real, but if base is Integer,
+				// current should be kept as is (Real or Integer)
+				else if (base == TokenType.Real)
+					current = TokenType.Real;
 				
 				operator = null;
 			}
@@ -411,35 +480,12 @@ public class SemanticAnalyser implements SyntacticListener
 		
 		this.lastExpressionType = current;
 	}
-	
-	private void printExpressions(int tabs)
-	{
-		if (!DEBUG) return;
-		if (this.expressionStack.isEmpty()) {
-			Log.d(tabs, "Expression stack: --");
-			return;
-		}
-		
-		StringBuilder message = new StringBuilder();
-		message.append("Expression stack: ");
-		
-		Iterator<IndexedValue<TokenType>> it = this.expressionStack.descendingIterator();
-		while (it.hasNext())
-		{
-			IndexedValue<TokenType> val = it.next();
-			message.append(val.value + " ");
-		}
-		
-		message.append("(").append(this.expressionStack.peek().index).append(")");
-		
-		Log.d(tabs, message.toString());
-	}
 
 	@Override
 	public void onProcedureParametersDeclarationBegin(int i, Symbol symbol)
 	{
 		matchIndex(i);
-		this.numberOfProcedureParameters = 0;
+		this.procedureParametersCount = 0;
 	}
 
 	@Override
@@ -447,13 +493,13 @@ public class SemanticAnalyser implements SyntacticListener
 	{
 		matchIndex(i);
 		
-		TokenType[] parameters = new TokenType[this.numberOfProcedureParameters];
+		TokenType[] parameters = new TokenType[this.procedureParametersCount];
 		Iterator<IndexedValue<String>> it = this.tokenStack.iterator();
 		
-		while (this.numberOfProcedureParameters-- > 0)
+		while (this.procedureParametersCount-- > 0)
 		{
 			String key = getIdentifierKey(it.next().value);
-			parameters[this.numberOfProcedureParameters] = this.identifiersTypes.get(key);
+			parameters[this.procedureParametersCount] = this.identifiersTypes.get(key);
 		}
 		
 		this.proceduresParameters.put(this.lastProcedureKey, parameters);
@@ -517,5 +563,29 @@ public class SemanticAnalyser implements SyntacticListener
 	{
 		if (this.lastExpressionType != TokenType.Boolean)
 			throw new SemanticException("Expression result for control statement isn't boolean", symbol);
+	}
+	
+	private void printExpressions(int tabs)
+	{
+		if (!Log.DEBUG) return;
+		
+		if (this.expressionStack.isEmpty()) {
+			Log.d(tabs, "Expression stack: --");
+			return;
+		}
+		
+		StringBuilder message = new StringBuilder();
+		message.append("Expression stack: ");
+		
+		Iterator<IndexedValue<TokenType>> it = this.expressionStack.descendingIterator();
+		while (it.hasNext())
+		{
+			IndexedValue<TokenType> val = it.next();
+			message.append(val.value + " ");
+		}
+		
+		message.append("(").append(this.expressionStack.peek().index).append(")");
+		
+		Log.d(tabs, message.toString());
 	}
 }

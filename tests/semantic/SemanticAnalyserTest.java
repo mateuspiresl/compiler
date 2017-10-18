@@ -21,28 +21,6 @@ public class SemanticAnalyserTest
 	{
 		SemanticAnalyser analyser = new SemanticAnalyser();
 		
-		analyser.onBlockBegin(i++, s);
-		analyser.onBlockEnd(i++, s);
-		
-		try { analyser.onBlockEnd(i++, s); fail(); }
-		catch (SemanticException e) { }
-		
-		analyser.onBlockBegin(i++, s);
-		analyser.onBlockBegin(i++, s);
-		analyser.onBlockBegin(i++, s);
-		analyser.onBlockEnd(i++, s);
-		analyser.onBlockEnd(i++, s);
-		analyser.onBlockEnd(i++, s);
-		
-		try { analyser.onBlockEnd(i++, s); fail(); }
-		catch (SemanticException e) { }
-	}
-	
-	@Test
-	public void testBlock()
-	{
-		SemanticAnalyser analyser = new SemanticAnalyser();
-		
 		analyser.onScopeBegin(i++, l++);
 		analyser.onScopeEnd(i++, l++);
 		
@@ -84,10 +62,7 @@ public class SemanticAnalyserTest
 		SemanticAnalyser analyser = new SemanticAnalyser();
 		
 		analyser.onScopeBegin(i++, 0);
-		analyser.onBlockBegin(i++, s);
-		
 		analyser.onExpressionBegin(i++, s);
-		
 		analyser.onExpressionBegin(i++, s);
 		analyser.onValue(i++, new Symbol("", TokenType.Integer, 0));
 		analyser.onOperator(i++, new Symbol("", TokenType.AdditiveOperator, 0));
@@ -103,7 +78,7 @@ public class SemanticAnalyserTest
 		analyser.onExpressionEnd(i++, s);
 		analyser.onControlCondition(i++, s);
 		
-		analyser.onBlockEnd(i++, s);
+		
 		analyser.onScopeEnd(i++, 0);
 	}
 	
@@ -118,22 +93,14 @@ public class SemanticAnalyserTest
 		analyser.onScopeBegin(i++, 0);
 		{
 			analyser.onProcedureDeclaration(i++, proc1);
-			
-			try { analyser.onProcedure(i++, proc1); fail(); }
-			catch (SemanticException e) { }
-			
-			analyser.onBlockBegin(i++, s);
 			analyser.onProcedure(i++, proc1);
-			analyser.onBlockEnd(i++, s);
 			
 			analyser.onScopeBegin(i++, 0);
 			{
 				analyser.onProcedureDeclaration(i++, proc2);
-				
-				analyser.onBlockBegin(i++, s);
 				analyser.onProcedure(i++, proc1);
 				analyser.onProcedure(i++, proc2);
-				analyser.onBlockEnd(i++, s);
+				
 				analyser.onScopeEnd(i++, 0);
 			}
 			
@@ -174,8 +141,8 @@ public class SemanticAnalyserTest
 			analyser.onVariableDeclaration(i++, param1);
 			analyser.onTypeDefinition(i++, real);
 			analyser.onProcedureParametersDeclarationEnd(i++, s);	
-			analyser.onBlockBegin(i++, s);
-			analyser.onBlockEnd(i++, s);
+			
+			
 			analyser.onScopeEnd(i++, 0);
 			
 			analyser.onProcedureDeclaration(i++, proc1);
@@ -188,11 +155,11 @@ public class SemanticAnalyserTest
 			analyser.onVariableDeclaration(i++, param2);
 			analyser.onTypeDefinition(i++, bool);
 			analyser.onProcedureParametersDeclarationEnd(i++, s);
-			analyser.onBlockBegin(i++, s);
-			analyser.onBlockEnd(i++, s);
+			
+			
 			analyser.onScopeEnd(i++, 0);
 			
-			analyser.onBlockBegin(i++, s);
+			
 			analyser.onProcedure(i++, proc0);
 			
 			Log.d(0, "0: Invalid argument count");
@@ -277,7 +244,7 @@ public class SemanticAnalyserTest
 			analyser.onProcedureArgument(i++, s);
 			
 			analyser.onProcedureArgumentsEnd(i++, s);
-			analyser.onBlockEnd(i++, s);
+			
 			analyser.onScopeEnd(i++, 0);
 		}
 	}
@@ -303,10 +270,9 @@ public class SemanticAnalyserTest
 			analyser.onVariableDeclaration(i++, var0);
 			analyser.onVariableDeclaration(i++, var0b);
 			analyser.onTypeDefinition(i++, type0);
-			analyser.onBlockBegin(i++, s);
+			
 			analyser.onVariable(i++, var0);
 			analyser.onVariable(i++, var0b);
-			analyser.onBlockEnd(i++, s);
 			
 			try { analyser.onVariable(i++, var1); fail(); }
 			catch (SemanticException e) { }
@@ -316,35 +282,23 @@ public class SemanticAnalyserTest
 				analyser.onVariableDeclaration(i++, var1);
 				analyser.onVariableDeclaration(i++, var1b);
 				analyser.onTypeDefinition(i++, type1);
-				analyser.onBlockBegin(i++, s);
+				
 				analyser.onVariable(i++, var0);
 				analyser.onVariable(i++, var0b);
 				analyser.onVariable(i++, var1);
 				analyser.onVariable(i++, var1b);
-				analyser.onBlockEnd(i++, s);
 				
-				try { analyser.onVariable(i++, var1); fail(); }
-				catch (SemanticException e) { }
-				
-				analyser.onBlockBegin(i++, s);
-				analyser.onVariable(i++, var0);
-				analyser.onVariable(i++, var1);
-				analyser.onBlockEnd(i++, s);
 				analyser.onScopeEnd(i++, l++);
 			}
 			
-			analyser.onBlockBegin(i++, s);
 			analyser.onVariable(i++, var0);
 			analyser.onVariable(i++, var0b);
 			
 			try { analyser.onVariable(i++, var1); fail(); }
 			catch (SemanticException e) { }
 			
-			analyser.onBlockEnd(i++, s);
 			analyser.onScopeEnd(i++, l++);
 		}
-		
-		analyser.onBlockBegin(i++, s);
 		
 		try { analyser.onVariable(i++, var0); fail(); }
 		catch (SemanticException e) { }
@@ -370,13 +324,6 @@ public class SemanticAnalyserTest
 			analyser.onVariableDeclaration(i++, var0);
 			analyser.onTypeDefinition(i++, type);
 			
-			try { analyser.onProcedure(i++, proc0); fail(); }
-			catch (SemanticException e) { }
-			
-			try { analyser.onVariable(i++, var0); fail(); }
-			catch (SemanticException e) { }
-			
-			analyser.onBlockBegin(i++, s);
 			analyser.onProcedure(i++, proc0);
 			analyser.onVariable(i++, var0);
 			
@@ -386,22 +333,18 @@ public class SemanticAnalyserTest
 			try { analyser.onProcedure(i++, var0); fail(); }
 			catch (SemanticException e) { }
 			
-			analyser.onBlockEnd(i++, s);
-			
 			analyser.onScopeBegin(i++, 0);
 			{
 				analyser.onProcedureDeclaration(i++, proc1);
 				analyser.onVariableDeclaration(i++, var1);
 				analyser.onTypeDefinition(i++, type);
 				
-				analyser.onBlockBegin(i++, s);
 				analyser.onProcedure(i++, proc1);
 				analyser.onVariable(i++, var1);
-				analyser.onBlockEnd(i++, s);
+				
 				analyser.onScopeEnd(i++, 0);
 			}
 			
-			analyser.onBlockBegin(i++, s);
 			analyser.onProcedure(i++, proc0);
 			analyser.onVariable(i++, var0);
 			
@@ -411,7 +354,7 @@ public class SemanticAnalyserTest
 			try { analyser.onVariable(i++, var1); fail(); }
 			catch (SemanticException e) { }
 			
-			analyser.onBlockEnd(i++, s);
+			
 			analyser.onScopeEnd(i++, 0);
 		}
 		
@@ -458,8 +401,6 @@ public class SemanticAnalyserTest
 		analyser.onVariableDeclaration(i++, bool0);
 		analyser.onVariableDeclaration(i++, bool1);
 		analyser.onTypeDefinition(i++, bool);
-		
-		analyser.onBlockBegin(i++, s);
 		
 		analyser.onExpressionBegin(i++, s);
 		analyser.onVariable(i++, int0);
@@ -571,7 +512,7 @@ public class SemanticAnalyserTest
 		catch (SemanticException e) { }
 		analyser.onExpressionEnd(i++, s);
 		
-		analyser.onBlockEnd(i++, s);
+		
 	}
 	
 	@Test
@@ -609,8 +550,6 @@ public class SemanticAnalyserTest
 		analyser.onVariableDeclaration(i++, bool0);
 		analyser.onVariableDeclaration(i++, bool1);
 		analyser.onTypeDefinition(i++, bool);
-		
-		analyser.onBlockBegin(i++, s);
 		
 		analyser.onExpressionBegin(i++, s);
 		analyser.onVariable(i++, int0);
@@ -698,7 +637,7 @@ public class SemanticAnalyserTest
 		catch (SemanticException e) { }
 		analyser.onExpressionEnd(i++, s);
 		
-		analyser.onBlockEnd(i++, s);
+		
 	}
 	
 	private static void testCode(String code) {
